@@ -1,0 +1,353 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@100..900&display=swap");
+
+/* General */
+
+.db2,
+.db2 * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.db2 {
+  --font-family: "Roboto", sans-serif;
+  --font-size-xs: 0.75rem; /* 12px */
+  --font-size-sm: 0.875rem; /* 14px */
+  --font-size-md: 1rem; /* 16px */
+  --font-size-lg: 1.25rem; /* 20px */
+  --line-height-body: 1.4;
+  --line-height-heading: 1.1;
+  --font-weight-normal: 400;
+  --font-weight-bold: 700;
+
+  --color-background-container: #eef1f0;
+  --color-background-card: #fff;
+  --color-background-tooltip: #2a3942;
+  --color-background-button: #fff;
+  --color-background-button-hover: #f4f5f5;
+  --color-text-heading: #2a3940;
+  --color-text-body: #5b7784;
+  --color-text-tooltip: #fff;
+  --color-text-button: #5b7784;
+
+  --color-primary: #01b074;
+  --color-highlight-stroke: #2a3940;
+  --color-highlight-fill: #fbd031;
+  --color-tick: #97c4d8;
+
+  --color-map-land: #f4f5f5;
+  --color-map-sea: #d8eded;
+  --color-map-park: #c2ddd4;
+  --color-map-border: #fff;
+
+  --box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-body);
+  background-color: var(--color-background-container);
+  color: var(--color-text-body);
+  padding: 2rem;
+  accent-color: var(--color-text-heading);
+  position: relative;
+}
+
+/* Layout */
+
+.db2 .grid {
+  display: grid;
+  gap: 2rem;
+  grid-template-areas:
+    "header"
+    "park-locations"
+    "park-areas"
+    "park-planning-areas"
+    "footer";
+}
+
+@media screen and (min-width: 1200px) {
+  .db2 .grid {
+    grid-template-areas:
+      "header header"
+      "park-locations park-planning-areas"
+      "park-areas park-planning-areas"
+      "footer footer";
+    grid-template-columns: 1fr auto;
+    max-width: 1440px;
+    margin-inline: auto;
+  }
+}
+
+.db2 .header {
+  grid-area: header;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.db2 .park-locations {
+  grid-area: park-locations;
+}
+
+.db2 .park-areas {
+  grid-area: park-areas;
+}
+
+.db2 .park-planning-areas {
+  grid-area: park-planning-areas;
+}
+
+.db2 .footer {
+  grid-area: footer;
+  font-size: var(--font-size-xs);
+}
+
+.db2 .footer a {
+  color: currentColor;
+}
+
+.db2 .footer > * + * {
+  margin-block-start: 0.5rem;
+}
+
+/* Typography */
+
+.db2 .h1 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-heading);
+  color: var(--color-text-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.db2 .h2 {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-heading);
+  color: var(--color-text-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.db2 .subtitle {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text-body);
+}
+
+.db2 .axis-g {
+  font-family: var(--font-family);
+  font-size: var(--font-size-xs);
+}
+
+.db2 text {
+  fill: currentColor;
+}
+
+/* UI */
+.db2 .card {
+  padding: 2rem;
+  border-radius: 1rem;
+  background-color: var(--color-background-card);
+  box-shadow: var(--box-shadow);
+}
+
+.db2 .card > * + *:not(.subtitle) {
+  margin-block-start: 1rem;
+}
+
+.db2 input[type="search"] {
+  font: inherit;
+  color: var(--color-text-heading);
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  background-color: var(--color-background-card);
+  border: 1px solid var(--color-text-body);
+  outline: none;
+}
+
+.db2 input[type="search"]::placeholder {
+  color: var(--color-text-body);
+}
+
+.db2 input[type="search"]:focus {
+  border-color: var(--color-text-heading);
+}
+
+.db2 fieldset {
+  min-width: 0;
+  border: 0;
+  display: flex;
+  align-items: center;
+}
+
+.db2 legend {
+  float: inline-start;
+  padding-inline-end: 0.5rem;
+}
+
+.db2 .radio-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.db2 .radio {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+/* Zoom controls */
+
+.db2 .zoom-control {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.25rem;
+  font: inherit;
+  padding: 0.5rem;
+  border: 0;
+  background-color: var(--color-background-button);
+  color: var(--color-text-button);
+  cursor: pointer;
+}
+
+.db2 .zoom-control svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.db2 .zoom-control:hover,
+.db2 .zoom-control:active {
+  background-color: var(--color-background-button-hover);
+}
+
+.db2 .zoom-controls {
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.db2 .zoom-controls > * {
+  box-shadow: var(--box-shadow);
+}
+
+.db2 .zoom-in-out {
+  display: flex;
+  flex-direction: column;
+}
+
+.db2 .zoom-in {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.db2 .zoom-out {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+/* Tooltip */
+.db2 .tip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  font-size: var(--font-size-sm);
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  background-color: var(--color-background-tooltip);
+  color: var(--color-text-tooltip);
+  box-shadow: var(--box-shadow);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease-in-out, visibility 0.15s ease-in-out;
+}
+
+.db2 .tip.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Charts */
+
+.db2 .chart-container {
+  position: relative;
+}
+
+.db2 .chart {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.db2 .axis-g .domain {
+  display: none;
+}
+
+.db2 .axis-g .tick line {
+  stroke: var(--color-tick);
+}
+
+.db2 .grabble {
+  cursor: grab;
+}
+
+.db2 .grabbing {
+  cursor: grabbing;
+}
+
+.db2 .bg-rect {
+  fill: var(--color-map-sea);
+}
+
+.db2 .planning-area-path {
+  fill: var(--color-map-land);
+  stroke: var(--color-map-border);
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+}
+
+.db2 .park-path {
+  fill: var(--color-map-park);
+  stroke: var(--color-map-border);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.db2 .park-path.highlighted {
+  stroke: var(--color-highlight-stroke);
+}
+
+.db2 .dot-circle {
+  cursor: default;
+  fill: var(--color-primary);
+  stroke: var(--color-background-card);
+  stroke-width: 2px;
+  paint-order: stroke;
+  vector-effect: non-scaling-stroke;
+}
+
+.db2 .searching .dot-circle {
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+.db2 .searching .dot-circle.matched {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.db2 .dot-circle.highlighted {
+  fill: var(--color-highlight-fill);
+  stroke: var(--color-highlight-stroke);
+  stroke-width: 4px;
+}

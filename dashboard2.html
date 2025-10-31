@@ -7,6 +7,7 @@
     <title>Dashboard 2</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="dashboard2/css/style.css">
 </head>
 
 <body>
@@ -21,22 +22,17 @@
         </nav>
     </div>
 
-    <div class="container">
-        <h2>Dashboard 2</h2>
-        <div id="chart1" class="chart"></div>
-    </div>
-
-    <script>
-        const svg = d3.select("#chart1")
-            .append("svg")
-            .attr("width", "100%")
-            .attr("height", "100%");
-
-        svg.append("text")
-            .attr("x", 50)
-            .attr("y", 50)
-            .text("Dashboard 2 Visualization")
-            .style("font-size", "24px");
+    <!-- DASHBOARD 2 CONTAINER -->
+    <div id="db2"></div>
+    <!-- LOAD DASHBOARD 2 JS -->
+    <script type="module">
+        import { initDashboard2 } from "./dashboard2/js/index.js";
+        const DATA_FOLDER_URL = "./src";
+        const CONTAINER_ID = "db2";
+        initDashboard2({
+            containerId: CONTAINER_ID,
+            dataFolderUrl: DATA_FOLDER_URL,
+        });
     </script>
 </body>
 
