@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
@@ -20,19 +20,63 @@
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
             background: #0f1115;
             color: #e7e9ee;
-            padding: 20px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header-container {
+            background-color: #333;
+            text-align: center;
+        }
+
+        .header-container h1 {
+            color: white;
+            margin: 0;
+            font-size: 40px;
+            padding: 27px 0;
+        }
+
+        nav {
+            display: flex;
+            justify-content: center;
+        }
+
+        nav a {
+            display: block;
+            color: #f2f2f2;
+            text-align: center;
+            padding: 12px 20px;
+            text-decoration: none;
+            border: 1px solid #ccc;
+            margin: 0 5px;
+            border-radius: 5px;
+            background-color: #555;
+            transition: 0.3s;
+        }
+
+        nav a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+
+        nav a.active {
+            background-color: #04AA6D;
+            color: white;
         }
 
         .container {
             max-width: 1400px;
             margin: 0 auto;
+            padding: 20px;
         }
 
-        h1 {
+        h1.main-title {
             margin-bottom: 30px;
             color: #e7e9ee;
             font-size: 32px;
             text-align: center;
+            margin-top: 0;
+            padding-top: 20px;
         }
 
         .charts-grid {
@@ -132,8 +176,19 @@
 </head>
 
 <body>
+    <div class="header-container">
+        <h1>Urban Green Space Accessibility</h1>
+        <nav>
+            <a href="dashboard1.html">Dashboard 1</a>
+            <a href="dashboard2.html">Dashboard 2</a>
+            <a href="dashboard3.html" class="active">Dashboard 3</a>
+            <a href="dashboard4.html">Dashboard 4</a>
+            <a href="dashboard5.html">Dashboard 5</a>
+        </nav>
+    </div>
+    
     <div class="container">
-        <h1>"The Gap" — An Analysis of Green Space Allocation Equity</h1>
+        <h1 class="main-title">"The Gap" — An Analysis of Green Space Allocation Equity</h1>
         
         <div class="charts-grid">
             <!-- Scatter Plot -->
@@ -253,13 +308,13 @@
 
         async function loadData() {
             const csvPaths = [
-                'd3-pa-visuals/public/data/pa_metrics.csv',
+                './public/data/pa_metrics.csv',
                 'public/data/pa_metrics.csv',
                 './data/pa_metrics.csv'
             ];
             
             const geoPaths = [
-                'd3-pa-visuals/public/data/sg_pa.geojson',
+                './public/data/sg_pa.geojson',
                 'public/data/sg_pa.geojson',
                 './data/sg_pa.geojson'
             ];
@@ -290,6 +345,9 @@
                 throw new Error('无法加载数据文件');
             }
             
+            console.log('CSV raw data sample:', metricsData[0]);
+            console.log('CSV total rows:', metricsData.length);
+            
             const metrics = metricsData.map(d => ({
                 pa: d.pa,
                 population: +d.population,
@@ -298,6 +356,9 @@
                 green_per_capita_m2: +d.green_per_capita_m2,
                 pop_density_per_km2: +d.pop_density_per_km2
             }));
+            
+            console.log('Parsed metrics sample:', metrics[0]);
+            console.log('GeoJSON features:', geoData.features.length);
             
             return { metrics, geo: geoData };
         }
@@ -678,8 +739,11 @@
                 console.log('All visualizations rendered!');
             } catch (err) {
                 console.error('Error:', err);
-                document.querySelector('.container').innerHTML = 
-                    '<p style="color: #e7e9ee; text-align: center;">无法加载数据。请检查网络连接和文件路径。</p>';
+                const container = document.querySelector('.container');
+                if (container) {
+                    container.innerHTML = 
+                        '<p style="color: #e7e9ee; text-align: center;">无法加载数据。请检查网络连接和文件路径。</p>';
+                }
             }
         })();
     </script>
