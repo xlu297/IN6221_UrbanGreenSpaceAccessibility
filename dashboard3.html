@@ -18,7 +18,6 @@
 
         body {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-            background: #e7e9ee;
             color: #e7e9ee;
             margin: 0;
             padding: 0;
@@ -306,37 +305,21 @@
         }
 
         async function loadData() {
-            const csvPaths = [
-                'src/pa_metrics.csv'
-            ];
-
-            const geoPaths = [
-                'src/sg_pa.geojson'
-            ];
-
             let metricsData, geoData;
 
-            for (const path of csvPaths) {
-                try {
-                    metricsData = await d3.csv(path);
-                    console.log('✓ Loaded CSV from:', path);
-                    break;
-                } catch (e) {
-                    console.log('✗ Failed CSV:', path);
-                }
+            try {
+                metricsData = await d3.csv('src/pa_metrics.csv');
+                console.log('✓ Loaded CSV from: src/pa_metrics.csv');
+            } catch (e) {
+                console.log('✗ Failed to load CSV:', e);
+                throw new Error('Failed to load data files');
             }
 
-            for (const path of geoPaths) {
-                try {
-                    geoData = await d3.json(path);
-                    console.log('✓ Loaded GeoJSON from:', path);
-                    break;
-                } catch (e) {
-                    console.log('✗ Failed GeoJSON:', path);
-                }
-            }
-
-            if (!metricsData || !geoData) {
+            try {
+                geoData = await d3.json('src/sg_pa.geojson');
+                console.log('✓ Loaded GeoJSON from: src/sg_pa.geojson');
+            } catch (e) {
+                console.log('✗ Failed to load GeoJSON:', e);
                 throw new Error('Failed to load data files');
             }
 
