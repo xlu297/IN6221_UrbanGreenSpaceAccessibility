@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard 4</title>
-
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <link rel="stylesheet" href="style.css">
     <style>
         html,
@@ -21,14 +21,82 @@
             flex-direction: column;
         }
 
-        .container {
-            width: 100%;
+        .content-wrapper {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            height: calc(100vh - 120px);
+            /* Account for header height */
+            margin-top: 5px;
+        }
+
+        .left-container {
+            width: 50%;
             display: flex;
             flex-direction: column;
+            height: 100%;
+        }
+
+        .left-top {
+            height: 70%;
             overflow: hidden;
-            padding: 0;
-            margin: 0;
-            flex: 1;
+            background: linear-gradient(to bottom, #e3f2fd 0%, #f5f5f5 100%);
+            border: 2px solid #42a5f5;
+            border-radius: 8px;
+            margin: 5px;
+            box-shadow: 0 4px 12px rgba(66, 165, 245, 0.15);
+        }
+
+        .left-bottom {
+            height: 30%;
+            background-color: #ffffff;
+            overflow: hidden;
+            padding: 20px;
+            box-sizing: border-box;
+            margin: 5px;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        }
+
+        .right-container {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .right-top {
+            height: 50%;
+            background: linear-gradient(135deg, #fff3e0 0%, #ffffff 100%);
+            overflow: hidden;
+            padding: 20px;
+            box-sizing: border-box;
+            margin: 5px;
+            border: 2px solid #ff9800;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(255, 152, 0, 0.12);
+        }
+
+        .right-bottom {
+            height: 50%;
+            background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+            overflow: hidden;
+            padding: 10px;
+            box-sizing: border-box;
+            margin: 5px;
+            border: 2px solid #66bb6a;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(102, 187, 106, 0.15);
+        }
+
+        h2 {
+            padding: 0px 20px;
+            font-size: 24px;
+            font-weight: 600;
+            color: #555;
+            border-radius: 8px;
+            max-width: 90%;
+            letter-spacing: 0.5px;
         }
     </style>
 </head>
@@ -45,10 +113,322 @@
         </nav>
     </div>
 
-    <div class="container">
-        <!-- Embedded entire db4.html -->
-        <iframe src="src/db4.html" style="display:block; width:100%; height:100%; border:none;"></iframe>
+    <h2>Distance Relationship Between Residential Areas and Parks</h2>
+    <div class="content-wrapper">
+        <div class="left-container">
+            <div class="left-top">
+                <div id="interactive-map-container" class="chart"
+                    style="position: relative; height: 100%; padding: 15px;">
+                    <h3
+                        style="margin: 0 0 8px 0; font-size: 19px; color: #1565c0; font-weight: 700; letter-spacing: -0.5px; text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);">
+                        Click-to-Analyze: Find Nearest Park</h3>
+                    <p style="margin: 0 0 15px 0; font-size: 13px; color: #424242; font-weight: 500;">Click anywhere on
+                        the map to find the nearest park</p>
+                    <div id="distance-info"
+                        style="position: absolute; top: 25px; right: 40px; font-size: 12px; color: #212529; background: white; padding: 15px; border: 2px solid #42a5f5; border-radius: 6px; max-width: 240px; z-index: 100; box-shadow: 0 2px 8px rgba(66, 165, 245, 0.2);">
+                        <div
+                            style="font-weight: 600; font-size: 13px; margin-bottom: 10px; border-bottom: 2px solid #42a5f5; padding-bottom: 8px; color: #1565c0;">
+                            📍 Distance Result</div>
+                        <div id="distance-content" style="color: #424242; font-size: 12px; line-height: 1.5;">Click
+                            anywhere on the map</div>
+                    </div>
+                    <svg id="interactive-map" style="display: block; margin-top: 10px;"></svg>
+                </div>
+            </div>
+            <div class="left-bottom" id="new-container">
+                <h3
+                    style="margin: 0 0 12px 0; font-size: 17px; color: #212529; font-weight: 600; letter-spacing: -0.3px; border-bottom: 2px solid #dee2e6; padding-bottom: 10px;">
+                    Additional Information</h3>
+                <p style="margin: 0; font-size: 14px; color: #495057; line-height: 1.7;">This container is ready for
+                    additional content such as statistics, insights, or interactive elements.</p>
+            </div>
+        </div>
+
+        <div class="right-container">
+            <div class="right-top" id="histogram-container">
+                <h3
+                    style="margin: 0 0 15px 0; font-size: 19px; color: #e65100; font-weight: 700; letter-spacing: -0.5px; border-bottom: 3px solid #ff9800; padding-bottom: 10px;">
+                    Park Accessibility Distance</h3>
+                <svg id="histogram" style="display: block;"></svg>
+            </div>
+            <div class="right-bottom" id="regions-trails-map-container" style="position: relative;">
+                <div id="map-title"
+                    style="position: absolute; top: 15px; left: 15px; z-index: 100; font-size: 15px; font-weight: 700; color: #2e7d32; padding: 10px 14px; border-radius: 6px; background: white; border: 2px solid #66bb6a; box-shadow: 0 2px 6px rgba(102, 187, 106, 0.2);">
+                    Singapore Regions & Trails</div>
+                <div id="map-legend"
+                    style="position: absolute; top: 65px; left: 15px; z-index: 100; background: rgba(255, 255, 255, 0.98); padding: 14px; border: 2px solid #81c784; border-radius: 6px; font-size: 10px; box-shadow: 0 2px 6px rgba(102, 187, 106, 0.15);">
+                    <div
+                        style="font-size: 12px; font-weight: 600; margin-bottom: 10px; color: #2e7d32; border-bottom: 2px solid #81c784; padding-bottom: 6px;">
+                        Legend</div>
+                    <div
+                        style="font-size: 10px; font-weight: 600; margin-top: 4px; margin-bottom: 6px; color: #495057;">
+                        Regions</div>
+                    <div style="display: flex; align-items: center; margin-bottom: 3px;">
+                        <div
+                            style="width: 15px; height: 12px; background: #FFCC80; border: 1px solid #666; margin-right: 8px;">
+                        </div><span style="font-size: 9px;">Central Region</span>
+                    </div>
+                    <div style="display: flex; align-items: center; margin-bottom: 3px;">
+                        <div
+                            style="width: 15px; height: 12px; background: #81C784; border: 1px solid #666; margin-right: 8px;">
+                        </div><span style="font-size: 9px;">East Region</span>
+                    </div>
+                    <div style="display: flex; align-items: center; margin-bottom: 3px;">
+                        <div
+                            style="width: 15px; height: 12px; background: #EF5350; border: 1px solid #666; margin-right: 8px;">
+                        </div><span style="font-size: 9px;">West Region</span>
+                    </div>
+                    <div style="display: flex; align-items: center; margin-bottom: 3px;">
+                        <div
+                            style="width: 15px; height: 12px; background: #64B5F6; border: 1px solid #666; margin-right: 8px;">
+                        </div><span style="font-size: 9px;">North Region</span>
+                    </div>
+                    <div style="display: flex; align-items: center; margin-bottom: 6px;">
+                        <div
+                            style="width: 15px; height: 12px; background: #CE93D8; border: 1px solid #666; margin-right: 8px;">
+                        </div><span style="font-size: 9px;">North-East Region</span>
+                    </div>
+                    <div
+                        style="font-size: 10px; font-weight: 600; margin-top: 8px; margin-bottom: 6px; color: #495057;">
+                        Other Layers</div>
+                    <div style="display: flex; align-items: center;">
+                        <div style="width: 15px; height: 2px; background: #544945; margin-right: 8px;"></div><span
+                            style="font-size: 9px;" id="tracks-count">NParks Tracks</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <script>
+        /**
+         * ************************************************************************
+         * @description: Singapore Regions & Trails Map: boundary + tracks
+         * @returns: void
+         * ************************************************************************
+         */
+        async function initRegionsAndTracks() {
+            const width = 1200, height = 800;
+            const container = d3.select("#regions-trails-map-container");
+            container.selectAll("svg").remove();
+            const svg = container.append("svg")
+                .attr("width", "100%")
+                .attr("height", "100%")
+                .attr("viewBox", `0 0 ${width} ${height}`)
+                .attr("preserveAspectRatio", "xMidYMid meet");
+            const g = svg.append("g");
+            const loading = svg.append("text").attr("x", width / 2).attr("y", height / 2).attr("text-anchor", "middle").style("font-size", "20px").text("Loading map data...");
+
+            let boundaryData, tracksData;
+            try { boundaryData = await d3.json("src/MasterPlan2019PlanningAreaBoundaryNoSea.geojson"); }
+            catch (e) { loading.text("Failed to load boundary data"); return; }
+            try { tracksData = await d3.json("src/NParksTracks.geojson"); }
+            catch (e) { loading.text("Failed to load tracks data"); return; }
+            loading.remove();
+
+            function getPlanningAreaName(feature) { const desc = feature.properties.Description; if (!desc) return null; const m = desc.match(/<th>PLN_AREA_N<\/th>\s*<td>([^<]+)<\/td>/); return m ? m[1] : null; }
+            function getRegionName(feature) { const desc = feature.properties.Description; if (!desc) return null; const m = desc.match(/<th>REGION_N<\/th>\s*<td>([^<]+)<\/td>/); return m ? m[1] : null; }
+            const regionColors = { "CENTRAL REGION": "#FFCC80", "EAST REGION": "#81C784", "WEST REGION": "#EF5350", "NORTH REGION": "#64B5F6", "NORTH-EAST REGION": "#CE93D8" };
+            const getRegionColor = f => regionColors[getRegionName(f)] || "#fef5e7";
+            const projection = d3.geoMercator().fitSize([width, height], boundaryData);
+            const path = d3.geoPath().projection(projection);
+
+            g.selectAll("path.boundary").data(boundaryData.features).enter().append("path")
+                .attr("class", "boundary").attr("d", path).attr("fill", d => getRegionColor(d))
+                .attr("stroke", "#666").attr("stroke-width", 1).attr("opacity", 0.7)
+                .on("mouseover", function (event, d) { d3.select(this).attr("opacity", 1).attr("stroke", "#333").attr("stroke-width", 2); const planningArea = getPlanningAreaName(d); const region = getRegionName(d); tooltip.style("display", "block").html(`<strong>${planningArea}</strong><br/>Region: ${region}`); })
+                .on("mousemove", function (event) { tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px"); })
+                .on("mouseout", function () { d3.select(this).attr("opacity", 0.7).attr("stroke", "#666").attr("stroke-width", 1); tooltip.style("display", "none"); });
+
+            g.selectAll("path.track").data(tracksData.features).enter().append("path")
+                .attr("class", "track").attr("d", path).attr("fill", "none")
+                .attr("stroke", "#544945").attr("stroke-width", 2.5).attr("opacity", 0.8)
+                .on("mouseover", function (event, d) { d3.select(this).attr("stroke-width", 4).attr("opacity", 1); tooltip.style("display", "block").html(`<strong>NParks Track/Path</strong><br/>Track ID: ${d.id || 'N/A'}`); })
+                .on("mousemove", function (event) { tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px"); })
+                .on("mouseout", function () { d3.select(this).attr("stroke-width", 2.5).attr("opacity", 0.8); tooltip.style("display", "none"); });
+
+            const zoom = d3.zoom().scaleExtent([1, 8]).on("zoom", (event) => { g.attr("transform", event.transform); });
+            svg.call(zoom);
+            document.getElementById("tracks-count").textContent = `NParks Tracks`;
+        }
+
+        /**
+         * ************************************************************************
+         * @description: Park Accessibility Distance Histogram: land use + parks
+         * @returns: void
+         * ************************************************************************
+         */
+        async function initHistogram() {
+            try {
+                // Load distances from CSV file
+                const residentialDistanceData = await d3.csv("src/residential_distances.csv", d => ({
+                    name: d.name,
+                    distance: +d.distance_m
+                }));
+
+                if (!residentialDistanceData || residentialDistanceData.length === 0) {
+                    showHistError("CSV file is empty or invalid");
+                    return;
+                }
+
+                // Extract just the distance values for the histogram
+                const distances = residentialDistanceData.map(d => d.distance).filter(d => isFinite(d) && d > 0);
+
+                if (distances.length === 0) {
+                    showHistError("No valid distance data found in CSV");
+                    return;
+                }
+
+                createHistogram(distances);
+            }
+            catch (e) {
+                console.error("Failed to load CSV data:", e);
+                showHistError("Failed to load residential_distances.csv: " + (e.message || "File not found"));
+            }
+
+            function showHistError(msg) { const el = document.getElementById("histogram-container"); if (el) el.insertAdjacentHTML("beforeend", `<div style="color:#b00020; font-size:12px; margin-top:6px;">${msg}</div>`); }
+        }
+
+        /**
+         * ************************************************************************
+         * @description: Click-to-Analyze: Find Nearest Park Map: boundary + parks
+         * @returns: void
+         * ************************************************************************
+         */
+        async function initInteractive() {
+            let boundaryData, parksData;
+            try { boundaryData = await d3.json("src/MasterPlan2019PlanningAreaBoundaryNoSea.geojson"); } catch (e) { return; }
+            try { parksData = await d3.json("src/Parks.geojson"); } catch (e) { return; }
+            createInteractiveMap(boundaryData, parksData);
+        }
+
+        // Kick off each viz independently
+        initRegionsAndTracks();
+        initHistogram();
+        initInteractive();
+
+        /**
+         * description: Create Histogram
+         * @param: distances
+         * @returns: void
+         */
+        function createHistogram(distances) {
+            const container = document.getElementById("histogram-container");
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+            const histSvg = d3.select("#histogram");
+            const margin = { top: 20, right: 30, bottom: 90, left: 60 };
+            const histWidth = containerWidth - margin.left - margin.right - 20;
+            const histHeight = containerHeight - margin.top - margin.bottom - 45;
+            histSvg.selectAll("*").remove();
+            histSvg.attr("width", containerWidth - 20).attr("height", containerHeight);
+            const g = histSvg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+            const maxDist = d3.max(distances);
+            const bins = d3.bin().domain([0, maxDist]).thresholds(20)(distances);
+            const x = d3.scaleLinear().domain([0, maxDist]).range([0, histWidth]);
+            const y = d3.scaleLinear().domain([0, d3.max(bins, d => d.length)]).range([histHeight, 0]);
+            g.selectAll("rect").data(bins).enter().append("rect")
+                .attr("x", d => x(d.x0) + 1)
+                .attr("y", d => y(d.length))
+                .attr("width", d => Math.max(0, x(d.x1) - x(d.x0) - 2))
+                .attr("height", d => histHeight - y(d.length))
+                .attr("fill", "#2ecc71").attr("stroke", "#27ae60").attr("stroke-width", 1).attr("opacity", 0.8)
+                .on("mouseover", function (event, d) {
+                    d3.select(this).attr("opacity", 1);
+                    const avgDist = (d.x0 + d.x1) / 2;
+                    histTooltip.style("display", "block").html(`Distance: ${Math.round(avgDist)}m - ${Math.round(d.x1)}m<br/>Residential Areas: ${d.length}`);
+                })
+                .on("mousemove", function (event) { histTooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px"); })
+                .on("mouseout", function () { d3.select(this).attr("opacity", 0.8); histTooltip.style("display", "none"); });
+            g.append("g").attr("transform", `translate(0,${histHeight})`).call(d3.axisBottom(x).ticks(5))
+                .append("text").attr("x", histWidth / 2).attr("y", 60).attr("fill", "black").style("font-size", "12px").style("text-anchor", "middle").text("Distance to Nearest Park (meters)");
+            g.append("g").call(d3.axisLeft(y)).append("text").attr("transform", "rotate(-90)")
+                .attr("x", -histHeight / 2).attr("y", -45).attr("fill", "black").style("font-size", "12px").style("text-anchor", "middle").text("Number of Residential Areas");
+            const avgDistance = d3.mean(distances); const medianDistance = d3.median(distances);
+            g.append("text").attr("x", histWidth).attr("y", -5).attr("text-anchor", "end").style("font-size", "11px").style("fill", "#666").text(`Avg: ${Math.round(avgDistance)}m | Median: ${Math.round(medianDistance)}m`);
+        }
+
+        const histTooltip = d3.select("body").append("div").style("position", "absolute").style("display", "none").style("background", "rgba(0, 0, 0, 0.8)").style("color", "white").style("padding", "8px").style("border-radius", "4px").style("font-size", "12px").style("pointer-events", "none").style("z-index", "1000");
+
+        /**
+         * description: Create Interactive Map
+         * @param: boundaryData
+         * @param: parksData
+         * @returns: void
+         */
+        function createInteractiveMap(boundaryData, parksData) {
+            const container = document.getElementById("interactive-map-container");
+            const containerWidth = container.clientWidth; const containerHeight = container.clientHeight;
+            const mapSvg = d3.select("#interactive-map");
+            const mapWidth = containerWidth - 20; const mapHeight = containerHeight - 45;
+            mapSvg.attr("width", mapWidth).attr("height", mapHeight).attr("viewBox", `0 0 ${mapWidth} ${mapHeight}`).attr("preserveAspectRatio", "xMidYMid meet");
+            mapSvg.selectAll("*").remove();
+            const projection = d3.geoMercator().fitSize([mapWidth, mapHeight], boundaryData);
+            const path = d3.geoPath().projection(projection);
+            const g = mapSvg.append("g");
+
+            function getPlanningAreaName(feature) { const desc = feature.properties.Description; if (!desc) return null; const match = desc.match(/<th>PLN_AREA_N<\/th>\s*<td>([^<]+)<\/td>/); return match ? match[1] : null; }
+            function getRegionName(feature) { const desc = feature.properties.Description; if (!desc) return null; const match = desc.match(/<th>REGION_N<\/th>\s*<td>([^<]+)<\/td>/); return match ? match[1] : null; }
+
+            g.selectAll("path.boundary").data(boundaryData.features).enter().append("path").attr("class", "boundary").attr("d", path)
+                .attr("fill", "#ffe680").attr("stroke", "#999").attr("stroke-width", 1).attr("opacity", 0.7).style("cursor", "pointer")
+                .on("mouseover", function (event, d) {
+                    d3.select(this).attr("fill", "#ffd54f").attr("stroke", "#666").attr("stroke-width", 2).attr("opacity", 0.9);
+                    const planningArea = getPlanningAreaName(d); const region = getRegionName(d);
+                    tooltip.style("display", "block").html(`<strong>${planningArea}</strong><br/>Region: ${region}`);
+                })
+                .on("mousemove", function (event) { tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px"); })
+                .on("mouseout", function () { d3.select(this).attr("fill", "#ffe680").attr("stroke", "#999").attr("stroke-width", 1).attr("opacity", 0.7); tooltip.style("display", "none"); });
+
+            const parkGroup = g.append("g").attr("class", "parks-layer");
+            parkGroup.selectAll("circle.park").data(parksData.features).enter().append("circle")
+                .attr("class", "park").attr("cx", d => projection(d.geometry.coordinates)[0]).attr("cy", d => projection(d.geometry.coordinates)[1])
+                .attr("r", 3).attr("fill", "#c0392b").attr("stroke", "#922b21").attr("stroke-width", 1).attr("opacity", 0.8).style("cursor", "pointer")
+                .on("mouseover", function (event, d) {
+                    d3.select(this).transition().duration(200).attr("r", 5).attr("opacity", 1);
+                    const parkName = d.properties.NAME || "Unknown Park";
+                    tooltip.style("display", "block").html(`<strong>🏞️ ${parkName}</strong>`);
+                })
+                .on("mousemove", function (event) { tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px"); })
+                .on("mouseout", function () { d3.select(this).transition().duration(200).attr("r", 3).attr("opacity", 0.8); tooltip.style("display", "none"); });
+
+            const interactionGroup = g.append("g").attr("class", "interaction-layer");
+            const zoom = d3.zoom().scaleExtent([1, 8]).on("zoom", function (event) { g.attr("transform", event.transform); });
+            mapSvg.call(zoom);
+            mapSvg.style("cursor", "crosshair");
+            mapSvg.on("click.custom", function (event) {
+                const [mouseX, mouseY] = d3.pointer(event, g.node());
+                const clickedCoords = projection.invert([mouseX, mouseY]);
+                let nearestPark = null; let minDistance = Infinity;
+                parksData.features.forEach(park => {
+                    const parkCoords = park.geometry.coordinates;
+                    const R = 6371000;
+                    const dLat = (parkCoords[1] - clickedCoords[1]) * Math.PI / 180;
+                    const dLon = (parkCoords[0] - clickedCoords[0]) * Math.PI / 180;
+                    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(clickedCoords[1] * Math.PI / 180) * Math.cos(parkCoords[1] * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                    const distance = R * c;
+                    if (distance < minDistance) { minDistance = distance; nearestPark = park; }
+                });
+                interactionGroup.selectAll("*").remove();
+                if (nearestPark) {
+                    const parkCoords = projection(nearestPark.geometry.coordinates);
+                    const clickCoords = projection(clickedCoords);
+                    interactionGroup.append("line").attr("x1", clickCoords[0]).attr("y1", clickCoords[1]).attr("x2", parkCoords[0]).attr("y2", parkCoords[1]).attr("stroke", "#e74c3c").attr("stroke-width", 2).attr("stroke-dasharray", "5,5").attr("opacity", 0.8);
+                    interactionGroup.append("circle").attr("cx", clickCoords[0]).attr("cy", clickCoords[1]).attr("r", 5).attr("fill", "#3498db").attr("stroke", "#2980b9").attr("stroke-width", 2);
+                    interactionGroup.append("circle").attr("cx", parkCoords[0]).attr("cy", parkCoords[1]).attr("r", 6).attr("fill", "none").attr("stroke", "#e74c3c").attr("stroke-width", 3);
+                    const parkName = nearestPark.properties.NAME || "Unknown Park";
+                    const distanceContent = document.getElementById("distance-content");
+                    distanceContent.innerHTML = `Your Location to ${parkName} is ${(minDistance / 1000).toFixed(2)}km`;
+                }
+            });
+        }
+
+        const tooltip = d3.select("body").append("div")
+            .style("position", "absolute").style("display", "none").style("background", "rgba(0, 0, 0, 0.8)")
+            .style("color", "white").style("padding", "8px").style("border-radius", "4px").style("font-size", "12px")
+            .style("pointer-events", "none").style("z-index", "1000");
+    </script>
 </body>
 
 </html>
