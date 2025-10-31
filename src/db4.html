@@ -240,30 +240,32 @@
          * ************************************************************************
          */
         async function initHistogram() {
-            let landUseData, parksData;
-            try { landUseData = await d3.json("MasterPlan2019LandUselayer.geojson"); }
-            catch (e) { showHistError("Failed to load land use data"); return; }
-            try { parksData = await d3.json("Parks.geojson"); }
-            catch (e) { showHistError("Failed to load parks data"); return; }
+            try {
+                // Load distances from CSV file
+                const residentialDistanceData = await d3.csv("residential_distances.csv", d => ({
+                    name: d.name,
+                    distance: +d.distance_m
+                }));
 
-            function getLandUseType(feature) { const desc = feature.properties.Description; if (!desc) return null; const m = desc.match(/<th>LU_DESC<\/th>\s*<td>([^<]+)<\/td>/); return m ? m[1] : null; }
-            const residentialTypes = ["RESIDENTIAL", "RESIDENTIAL WITH COMMERCIAL AT 1ST STOREY", "COMMERCIAL & RESIDENTIAL", "RESIDENTIAL / INSTITUTION"];
-            const residentialData = { ...landUseData, features: landUseData.features.filter(d => residentialTypes.includes(getLandUseType(d))) };
+                if (!residentialDistanceData || residentialDistanceData.length === 0) {
+                    showHistError("CSV file is empty or invalid");
+                    return;
+                }
 
-            const distances = [];
-            residentialData.features.forEach(resFeature => {
-                const coords = resFeature.geometry.coordinates[0];
-                let sumLon = 0, sumLat = 0, count = 0; coords.forEach(c => { sumLon += c[0]; sumLat += c[1]; count++; });
-                const centroidLon = sumLon / count, centroidLat = sumLat / count; let minDistance = Infinity;
-                parksData.features.forEach(park => {
-                    const parkLon = park.geometry.coordinates[0], parkLat = park.geometry.coordinates[1];
-                    const R = 6371000, dLat = (parkLat - centroidLat) * Math.PI / 180, dLon = (parkLon - centroidLon) * Math.PI / 180;
-                    const a = Math.sin(dLat / 2) ** 2 + Math.cos(centroidLat * Math.PI / 180) * Math.cos(parkLat * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
-                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); const distance = R * c; if (distance < minDistance) minDistance = distance;
-                });
-                if (minDistance !== Infinity) distances.push(minDistance);
-            });
-            createHistogram(distances);
+                // Extract just the distance values for the histogram
+                const distances = residentialDistanceData.map(d => d.distance).filter(d => isFinite(d) && d > 0);
+
+                if (distances.length === 0) {
+                    showHistError("No valid distance data found in CSV");
+                    return;
+                }
+
+                createHistogram(distances);
+            }
+            catch (e) {
+                console.error("Failed to load CSV data:", e);
+                showHistError("Failed to load residential_distances.csv: " + (e.message || "File not found"));
+            }
 
             function showHistError(msg) { const el = document.getElementById("histogram-container"); if (el) el.insertAdjacentHTML("beforeend", `<div style="color:#b00020; font-size:12px; margin-top:6px;">${msg}</div>`); }
         }
@@ -286,6 +288,11 @@
         initHistogram();
         initInteractive();
 
+        /**
+         * description: Create Histogram
+         * @param: distances
+         * @returns: void
+         */
         function createHistogram(distances) {
             const container = document.getElementById("histogram-container");
             const containerWidth = container.clientWidth;
@@ -324,6 +331,12 @@
 
         const histTooltip = d3.select("body").append("div").style("position", "absolute").style("display", "none").style("background", "rgba(0, 0, 0, 0.8)").style("color", "white").style("padding", "8px").style("border-radius", "4px").style("font-size", "12px").style("pointer-events", "none").style("z-index", "1000");
 
+        /**
+         * description: Create Interactive Map
+         * @param: boundaryData
+         * @param: parksData
+         * @returns: void
+         */
         function createInteractiveMap(boundaryData, parksData) {
             const container = document.getElementById("interactive-map-container");
             const containerWidth = container.clientWidth; const containerHeight = container.clientHeight;
