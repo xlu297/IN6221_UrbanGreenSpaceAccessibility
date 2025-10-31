@@ -12,7 +12,7 @@
     :root { --gap: 16px; }
     body { margin: 20px; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans"; color:#222; }
     .wrap { max-width: 1400px; margin:0 auto; }
-    header h1 { margin:0 0 8px; font-size:22px; }
+    header h1 { padding-bottom: 10px; font-size:22px; }
     header .note { color:#555; margin:4px 0 16px; }
     .kpi { display:grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap); margin-bottom: var(--gap); }
     .card { background:#f8f8fb; border:1px solid #eee; border-radius:14px; padding:12px 14px; min-height:54px; }
@@ -29,7 +29,7 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>Dashboard 1 — “Pressure”: Singapore’s High-Density Urban Environment</h1>
+    <h1>“Pressure”: Singapore’s High-Density Urban Environment</h1>
     <!-- note intentionally removed per request -->
     <div id="errBox"></div>
   </header>
@@ -255,3 +255,4 @@ const ylOrRdPalette = (n)=> d3.range(n).map(i => interpolate(d3.scaleLinear().do
 </script>
 </body>
 </html>
+
