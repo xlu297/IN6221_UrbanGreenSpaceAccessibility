@@ -70,11 +70,10 @@
             padding: 20px;
         }
 
-        h1.main-title {
+        h2.main-title {
             margin-bottom: 30px;
             color: #e7e9ee;
-            font-size: 32px;
-            text-align: center;
+            font-size: 24px;
             margin-top: 0;
             padding-top: 20px;
         }
@@ -186,10 +185,10 @@
             <a href="dashboard5.html">Dashboard 5</a>
         </nav>
     </div>
-    
+
     <div class="container">
-        <h1 class="main-title">"The Gap" — An Analysis of Green Space Allocation Equity</h1>
-        
+        <h2 class="main-title">"The Gap" — An Analysis of Green Space Allocation Equity</h2>
+
         <div class="charts-grid">
             <!-- Scatter Plot -->
             <div class="chart-container">
@@ -234,7 +233,7 @@
             if (props.name) return props.name;
             if (props.PA_NAME) return props.PA_NAME;
             if (props.pa) return props.pa;
-            
+
             if (props.Description) {
                 let match = props.Description.match(/<th>PLN_AREA_N<\/th>\s*<td>([^<]+)<\/td>/i);
                 if (!match) {
@@ -244,28 +243,28 @@
                     return match[1].trim();
                 }
             }
-            
+
             return null;
         }
-        
+
         function findMatchingData(geoName, paByName) {
             if (!geoName) return null;
-            
+
             let name = geoName.toUpperCase().trim();
             let m = paByName.get(name);
             if (m) return m;
-            
+
             if (!m) {
                 m = paByName.get(name.replace(/\s+/g, ''));
             }
-            
+
             if (!m) {
                 m = paByName.get(name.replace(/[_-]/g, ' '));
             }
             if (!m) {
                 m = paByName.get(name.replace(/[_-]/g, ' ').replace(/\s+/g, ''));
             }
-            
+
             if (!m) {
                 const cleaned = name.replace(/\s+(TOTAL|TOTAL_|REGION|AREA)$/i, '').trim();
                 m = paByName.get(cleaned);
@@ -273,7 +272,7 @@
                     m = paByName.get(cleaned.replace(/\s+/g, ''));
                 }
             }
-            
+
             if (!m) {
                 for (const [key, value] of paByName.entries()) {
                     const keyUpper = key.toUpperCase();
@@ -287,13 +286,13 @@
                     }
                 }
             }
-            
+
             if (!m) {
                 const words = name.split(/\s+/).filter(w => w.length > 2);
                 if (words.length > 0) {
                     for (const [key, value] of paByName.entries()) {
                         const keyUpper = key.toUpperCase();
-                        if (words.every(word => keyUpper.includes(word)) || 
+                        if (words.every(word => keyUpper.includes(word)) ||
                             words.some(word => keyUpper.length > 5 && keyUpper.includes(word))) {
                             m = value;
                             console.log(`Fuzzy matched: "${name}" -> "${key}"`);
@@ -302,25 +301,21 @@
                     }
                 }
             }
-            
+
             return m;
         }
 
         async function loadData() {
             const csvPaths = [
-                './public/data/pa_metrics.csv',
-                'public/data/pa_metrics.csv',
-                './data/pa_metrics.csv'
+                'src/pa_metrics.csv'
             ];
-            
+
             const geoPaths = [
-                './public/data/sg_pa.geojson',
-                'public/data/sg_pa.geojson',
-                './data/sg_pa.geojson'
+                'src/sg_pa.geojson'
             ];
-            
+
             let metricsData, geoData;
-            
+
             for (const path of csvPaths) {
                 try {
                     metricsData = await d3.csv(path);
@@ -330,7 +325,7 @@
                     console.log('✗ Failed CSV:', path);
                 }
             }
-            
+
             for (const path of geoPaths) {
                 try {
                     geoData = await d3.json(path);
@@ -340,14 +335,14 @@
                     console.log('✗ Failed GeoJSON:', path);
                 }
             }
-            
+
             if (!metricsData || !geoData) {
-                throw new Error('无法加载数据文件');
+                throw new Error('Failed to load data files');
             }
-            
+
             console.log('CSV raw data sample:', metricsData[0]);
             console.log('CSV total rows:', metricsData.length);
-            
+
             const metrics = metricsData.map(d => ({
                 pa: d.pa,
                 population: +d.population,
@@ -356,10 +351,10 @@
                 green_per_capita_m2: +d.green_per_capita_m2,
                 pop_density_per_km2: +d.pop_density_per_km2
             }));
-            
+
             console.log('Parsed metrics sample:', metrics[0]);
             console.log('GeoJSON features:', geoData.features.length);
-            
+
             return { metrics, geo: geoData };
         }
 
@@ -617,7 +612,7 @@
                     .attr('y', '50%')
                     .attr('text-anchor', 'middle')
                     .attr('fill', '#e7e9ee')
-                    .text(`无法加载数据。匹配: ${matchedCount}/${features.length}`);
+                    .text(`Couldn't load data, matched: ${matchedCount}/${features.length}`);
                 return;
             }
 
@@ -660,11 +655,11 @@
             const legendX = width - legendW - 20;
             const legendY = height - 40;
             const legend = g.append('g').attr('transform', `translate(${legendX},${legendY})`);
-            
+
             const steps = color.quantiles();
             const stops = [d3.min(values), ...steps, d3.max(values)];
             const legendStep = legendW / (stops.length - 1);
-            
+
             legend.selectAll('rect')
                 .data(d3.pairs(stops))
                 .join('rect')
@@ -675,14 +670,14 @@
                 .attr('fill', d => color((d[0] + d[1]) / 2))
                 .attr('stroke', '#666')
                 .attr('stroke-width', 0.5);
-            
+
             legend.append('text')
                 .attr('x', 0)
                 .attr('y', legendH + 16)
                 .attr('fill', '#d1d5db')
                 .attr('font-size', '11px')
                 .text(d3.format('.1f')(d3.min(values)));
-            
+
             legend.append('text')
                 .attr('x', legendW)
                 .attr('y', legendH + 16)
@@ -690,7 +685,7 @@
                 .attr('fill', '#d1d5db')
                 .attr('font-size', '11px')
                 .text(d3.format('.1f')(d3.max(values)) + ' m²/person');
-            
+
             legend.append('text')
                 .attr('x', legendW / 2)
                 .attr('y', -8)
@@ -725,24 +720,24 @@
                 console.log('Data loaded successfully');
                 console.log('Metrics:', metrics.length);
                 console.log('Geo features:', geo.features.length);
-                
+
                 // Debug: check name matching
                 const sampleMetrics = metrics.slice(0, 5).map(m => m.pa);
                 const sampleGeo = geo.features.slice(0, 5).map(f => selectPAName(f.properties));
                 console.log('Sample metrics names:', sampleMetrics);
                 console.log('Sample geo names:', sampleGeo);
-                
+
                 renderScatter(metrics);
                 renderDivergingBars(metrics);
                 renderChoropleth(metrics, geo);
-                
+
                 console.log('All visualizations rendered!');
             } catch (err) {
                 console.error('Error:', err);
                 const container = document.querySelector('.container');
                 if (container) {
-                    container.innerHTML = 
-                        '<p style="color: #e7e9ee; text-align: center;">无法加载数据。请检查网络连接和文件路径。</p>';
+                    container.innerHTML =
+                        '<p style="color: #e7e9ee; text-align: center;">Failed to load data. Please check your network connection and file paths.</p>';
                 }
             }
         })();
