@@ -713,8 +713,14 @@
                 console.log('Sample metrics names:', sampleMetrics);
                 console.log('Sample geo names:', sampleGeo);
 
-                renderScatter(metrics);
-                renderDivergingBars(metrics);
+                const filteredForCharts = metrics.filter(d => {
+                    const name = (d.pa || '').toUpperCase().trim();
+                    return name !== 'WESTERN ISLANDS' && name !== 'TENGAH';
+                });
+                
+                renderScatter(filteredForCharts);
+                renderDivergingBars(filteredForCharts);
+                renderChoropleth(metrics, geo);
                 renderChoropleth(metrics, geo);
 
                 console.log('All visualizations rendered!');
@@ -729,5 +735,6 @@
         })();
     </script>
 </body>
+
 
 </html>
