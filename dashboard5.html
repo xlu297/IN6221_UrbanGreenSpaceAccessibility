@@ -462,6 +462,20 @@
             background: var(--morandi-green-2);
             color: var(--morandi-text);
         }
+
+        .chart-container .subtitle {
+            flex-shrink: 0;
+            font-size: 0.28rem;
+            line-height: 1.05;
+            color: #666;
+            margin-bottom: 5px;
+            margin-top: 0;
+        }
+        
+        .chart-container:nth-child(2) .subtitle {
+            font-size: 0.45rem;
+            margin-bottom: 3px;
+        }
     </style>
 </head>
 
@@ -482,6 +496,7 @@
             <div class="map-panel">
                 <div class="map-header">
                     <h2>Green Space Deficit Hotspot Map</h2>
+                    <!-- <p class="subtitle">Map visualizing green space deficit. Darker areas are priority intervention zones</p> -->
                 </div>
                 <div id="map-container">
                     <svg id="map"></svg>
@@ -493,14 +508,14 @@
             </div>
             
             <div class="fairness-chart-panel">
-                <h3>Per Capita Green Space Equity</h3>
+                <h3>Per Capita Green Space Equity Dynamic Analysis</h3>
                 <div class="chart-container" id="fairness-chart"></div>
             </div>
         </div>
 
         <div class="evaluation-panel">
             <div class="eval-module" id="coverage-module">
-                <h3>SDG 11.7 Coverage</h3>
+                <h3>SDG 11.7 Coverage Dynamic Analysis</h3>
                 <div class="kpi-display">
                     <div class="kpi-value" id="coverage-kpi">0%</div>
                     <div class="kpi-label">Residential units within 400m</div>
@@ -508,7 +523,7 @@
             </div>
 
             <div class="eval-module" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
-                <h3>Distance Distribution</h3>
+                <h3>Distance Distribution Dynamic Analysis</h3>
                 <div class="chart-container" id="distance-chart"></div>
             </div>
         </div>
@@ -1737,7 +1752,7 @@
             const containerWidth = containerNode ? containerNode.clientWidth : 300;
             const containerHeight = containerNode ? containerNode.clientHeight : 300;
             
-            const margin = { top: 20, right: 20, bottom: 50, left: 50 };
+            const margin = { top: 20, right: 20, bottom: 50, left: 70 };
             const width = Math.max(300, containerWidth - margin.left - margin.right);
             const height = Math.max(300, containerHeight - margin.top - margin.bottom);
 
@@ -1798,14 +1813,26 @@
                 .attr("fill", "currentColor")
                 .style("text-anchor", "middle")
                 .style("font-size", "12px")
-                .text("Distance (meters)");
+                .text("Distance to Nearest Park (meters)");
 
             // 添加Y轴
+            const yAxis = d3.axisLeft(y)
+                .ticks(8)
+                .tickFormat(d => {
+                    if (d >= 1000) {
+                        return (d / 1000).toFixed(1) + 'K';
+                    }
+                    return d;
+                });
+            
             g.append("g")
-                .call(d3.axisLeft(y))
-                .append("text")
+                .call(yAxis)
+                .selectAll("text")
+                .style("font-size", "10px");
+            
+            g.append("text")
                 .attr("transform", "rotate(-90)")
-                .attr("y", -35)
+                .attr("y", -45)
                 .attr("x", -height / 2)
                 .attr("fill", "currentColor")
                 .style("text-anchor", "middle")
