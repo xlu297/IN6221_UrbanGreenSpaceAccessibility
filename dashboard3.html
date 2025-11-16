@@ -4,11 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Singapore Green Space Analysis Dashboard</title>
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
+    <title>Dashboard 3 - Green Space Equity Analysis</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="style.css">
     <style>
         * {
             box-sizing: border-box;
@@ -18,10 +16,10 @@
 
         body {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-            color: #333;
+            background: #0f1115;
+            color: #e7e9ee;
             margin: 0;
             padding: 0;
-            background: #f5f5f5;
         }
 
         .header-container {
@@ -64,16 +62,17 @@
             color: white;
         }
 
-        .container {
+        .dashboard-container {
             max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
         }
 
-        h2.main-title {
+        h1.main-title {
             margin-bottom: 30px;
-            color: #0f1115;
-            font-size: 24px;
+            color: #e7e9ee;
+            font-size: 32px;
+            text-align: center;
             margin-top: 0;
             padding-top: 20px;
         }
@@ -88,14 +87,14 @@
         .chart-container {
             width: 100%;
             height: 600px;
-            border: 1px solid #e0e0e0;
+            border: 1px solid #202635;
             border-radius: 8px;
             padding: 15px;
-            background: #ffffff;
+            background: #1a1d24;
         }
 
         .chart-container h2 {
-            color: #333;
+            color: #e7e9ee;
             font-size: 18px;
             margin-bottom: 10px;
             text-align: center;
@@ -140,18 +139,18 @@
         }
 
         .axis text {
-            fill: #666;
+            fill: #d1d5db;
             font-size: 11px;
         }
 
         .axis line,
         .axis path {
-            stroke: #999;
+            stroke: #4b5563;
             stroke-width: 1px;
         }
 
         .dot {
-            stroke: #ffffff;
+            stroke: #1a1d24;
             stroke-width: 1px;
             transition: r 0.2s, stroke-width 0.2s;
         }
@@ -163,7 +162,7 @@
         }
 
         .region {
-            stroke: #ccc;
+            stroke: #374151;
             stroke-width: 0.5;
         }
 
@@ -185,10 +184,10 @@
             <a href="dashboard5.html">Dashboard 5</a>
         </nav>
     </div>
-
-    <div class="container">
-        <h2 class="main-title">"The Gap" — An Analysis of Green Space Allocation Equity</h2>
-
+    
+    <div class="dashboard-container">
+        <h1 class="main-title">"The Gap" — An Analysis of Green Space Allocation Equity</h1>
+        
         <div class="charts-grid">
             <!-- Scatter Plot -->
             <div class="chart-container">
@@ -233,7 +232,7 @@
             if (props.name) return props.name;
             if (props.PA_NAME) return props.PA_NAME;
             if (props.pa) return props.pa;
-
+            
             if (props.Description) {
                 let match = props.Description.match(/<th>PLN_AREA_N<\/th>\s*<td>([^<]+)<\/td>/i);
                 if (!match) {
@@ -243,28 +242,28 @@
                     return match[1].trim();
                 }
             }
-
+            
             return null;
         }
-
+        
         function findMatchingData(geoName, paByName) {
             if (!geoName) return null;
-
+            
             let name = geoName.toUpperCase().trim();
             let m = paByName.get(name);
             if (m) return m;
-
+            
             if (!m) {
                 m = paByName.get(name.replace(/\s+/g, ''));
             }
-
+            
             if (!m) {
                 m = paByName.get(name.replace(/[_-]/g, ' '));
             }
             if (!m) {
                 m = paByName.get(name.replace(/[_-]/g, ' ').replace(/\s+/g, ''));
             }
-
+            
             if (!m) {
                 const cleaned = name.replace(/\s+(TOTAL|TOTAL_|REGION|AREA)$/i, '').trim();
                 m = paByName.get(cleaned);
@@ -272,7 +271,7 @@
                     m = paByName.get(cleaned.replace(/\s+/g, ''));
                 }
             }
-
+            
             if (!m) {
                 for (const [key, value] of paByName.entries()) {
                     const keyUpper = key.toUpperCase();
@@ -280,53 +279,68 @@
                         const commonChars = name.split('').filter(c => keyUpper.includes(c)).length;
                         if (commonChars >= Math.min(3, name.length, keyUpper.length)) {
                             m = value;
-                            console.log(`Partial matched: "${name}" -> "${key}"`);
                             break;
                         }
                     }
                 }
             }
-
+            
             if (!m) {
                 const words = name.split(/\s+/).filter(w => w.length > 2);
                 if (words.length > 0) {
                     for (const [key, value] of paByName.entries()) {
                         const keyUpper = key.toUpperCase();
-                        if (words.every(word => keyUpper.includes(word)) ||
+                        if (words.every(word => keyUpper.includes(word)) || 
                             words.some(word => keyUpper.length > 5 && keyUpper.includes(word))) {
                             m = value;
-                            console.log(`Fuzzy matched: "${name}" -> "${key}"`);
                             break;
                         }
                     }
                 }
             }
-
+            
             return m;
         }
 
         async function loadData() {
+            const csvPaths = [
+                'public/data/pa_metrics.csv',
+                './public/data/pa_metrics.csv',
+                '../public/data/pa_metrics.csv'
+            ];
+            
+            const geoPaths = [
+                'public/data/sg_pa.geojson',
+                './public/data/sg_pa.geojson',
+                '../public/data/sg_pa.geojson'
+            ];
+            
             let metricsData, geoData;
-
-            try {
-                metricsData = await d3.csv('src/pa_metrics.csv');
-                console.log('✓ Loaded CSV from: src/pa_metrics.csv');
-            } catch (e) {
-                console.log('✗ Failed to load CSV:', e);
-                throw new Error('Failed to load data files');
+            
+            for (const path of csvPaths) {
+                try {
+                    metricsData = await d3.csv(path);
+                    console.log('✓ Loaded CSV from:', path);
+                    break;
+                } catch (e) {
+                    console.log('✗ Failed CSV:', path);
+                }
             }
-
-            try {
-                geoData = await d3.json('src/sg_pa.geojson');
-                console.log('✓ Loaded GeoJSON from: src/sg_pa.geojson');
-            } catch (e) {
-                console.log('✗ Failed to load GeoJSON:', e);
-                throw new Error('Failed to load data files');
+            
+            for (const path of geoPaths) {
+                try {
+                    geoData = await d3.json(path);
+                    console.log('✓ Loaded GeoJSON from:', path);
+                    break;
+                } catch (e) {
+                    console.log('✗ Failed GeoJSON:', path);
+                }
             }
-
-            console.log('CSV raw data sample:', metricsData[0]);
-            console.log('CSV total rows:', metricsData.length);
-
+            
+            if (!metricsData || !geoData) {
+                throw new Error('无法加载数据文件');
+            }
+            
             const metrics = metricsData.map(d => ({
                 pa: d.pa,
                 population: +d.population,
@@ -335,14 +349,12 @@
                 green_per_capita_m2: +d.green_per_capita_m2,
                 pop_density_per_km2: +d.pop_density_per_km2
             }));
-
-            console.log('Parsed metrics sample:', metrics[0]);
-            console.log('GeoJSON features:', geoData.features.length);
-
+            
             return { metrics, geo: geoData };
         }
 
         function renderScatter(data) {
+            d3.select('#scatter').selectAll('*').remove();
             const svg = d3.select('#scatter')
                 .append('svg')
                 .attr('width', '100%')
@@ -371,27 +383,25 @@
                 .attr('class', 'grid')
                 .attr('transform', `translate(0,${height})`)
                 .call(d3.axisBottom(x).tickSize(-height).tickFormat('').tickArguments([10]))
-                .attr('opacity', 0.2)
-                .attr('stroke', '#ccc');
+                .attr('opacity', 0.1);
 
             g.append('g')
                 .attr('class', 'grid')
                 .call(d3.axisLeft(y).tickSize(-width).tickFormat('').tickArguments([10]))
-                .attr('opacity', 0.2)
-                .attr('stroke', '#ccc');
+                .attr('opacity', 0.1);
 
             // Axes
             g.append('g')
                 .attr('transform', `translate(0,${height})`)
                 .call(d3.axisBottom(x).tickFormat(d => d3.format(',.0f')(d)))
                 .selectAll('text')
-                .attr('fill', '#666')
+                .attr('fill', '#d1d5db')
                 .attr('font-size', '10px');
 
             g.append('g')
                 .call(d3.axisLeft(y).tickFormat(d => d3.format(',.1f')(d)))
                 .selectAll('text')
-                .attr('fill', '#666')
+                .attr('fill', '#d1d5db')
                 .attr('font-size', '10px');
 
             // Labels
@@ -399,7 +409,7 @@
                 .attr('x', width / 2)
                 .attr('y', height + 50)
                 .attr('text-anchor', 'middle')
-                .attr('fill', '#333')
+                .attr('fill', '#e7e9ee')
                 .attr('font-size', '13px')
                 .attr('font-weight', 'bold')
                 .text('Population Density (persons/km²)');
@@ -409,7 +419,7 @@
                 .attr('x', -height / 2)
                 .attr('y', -55)
                 .attr('text-anchor', 'middle')
-                .attr('fill', '#333')
+                .attr('fill', '#e7e9ee')
                 .attr('font-size', '13px')
                 .attr('font-weight', 'bold')
                 .text('Per Capita Green Space (m²/person)');
@@ -423,7 +433,7 @@
                 .attr('cy', d => y(d.green_per_capita_m2))
                 .attr('r', 5)
                 .attr('fill', '#5dc16b')
-                .attr('stroke', '#ffffff')
+                .attr('stroke', '#1a1d24')
                 .attr('stroke-width', 1)
                 .attr('opacity', 0.7)
                 .on('mousemove', (ev, d) => {
@@ -433,6 +443,7 @@
         }
 
         function renderDivergingBars(metrics) {
+            d3.select('#bars').selectAll('*').remove();
             const svg = d3.select('#bars')
                 .append('svg')
                 .attr('width', '100%')
@@ -484,20 +495,20 @@
                 .attr('transform', `translate(0,${height})`)
                 .call(d3.axisBottom(x).tickFormat(d => d3.format('+.1f')(d)))
                 .selectAll('text')
-                .attr('fill', '#666')
+                .attr('fill', '#d1d5db')
                 .attr('font-size', '10px');
 
             g.append('g')
                 .call(d3.axisLeft(y))
                 .selectAll('text')
-                .attr('fill', '#666')
+                .attr('fill', '#d1d5db')
                 .attr('font-size', '10px');
 
             g.append('text')
                 .attr('x', width / 2)
                 .attr('y', height + 40)
                 .attr('text-anchor', 'middle')
-                .attr('fill', '#333')
+                .attr('fill', '#e7e9ee')
                 .attr('font-size', '12px')
                 .text('Difference (m²/person)');
 
@@ -523,7 +534,7 @@
                 .attr('x', width / 2)
                 .attr('y', -10)
                 .attr('text-anchor', 'middle')
-                .attr('fill', '#333')
+                .attr('fill', '#e7e9ee')
                 .attr('font-size', '13px')
                 .text(`National Average: ${d3.format('.2f')(mean)} m²/person`);
 
@@ -542,7 +553,7 @@
             legend.append('text')
                 .attr('x', 25)
                 .attr('y', 12)
-                .attr('fill', '#666')
+                .attr('fill', '#d1d5db')
                 .attr('font-size', '12px')
                 .text('Above Average');
 
@@ -559,12 +570,13 @@
             legend.append('text')
                 .attr('x', 25)
                 .attr('y', 37)
-                .attr('fill', '#666')
+                .attr('fill', '#d1d5db')
                 .attr('font-size', '12px')
                 .text('Below Average');
         }
 
         function renderChoropleth(metrics, geo) {
+            d3.select('#map').selectAll('*').remove();
             const svg = d3.select('#map')
                 .append('svg')
                 .attr('width', '100%')
@@ -597,8 +609,8 @@
                     .attr('x', '50%')
                     .attr('y', '50%')
                     .attr('text-anchor', 'middle')
-                    .attr('fill', '#333')
-                    .text(`Couldn't load data, matched: ${matchedCount}/${features.length}`);
+                    .attr('fill', '#e7e9ee')
+                    .text(`无法加载数据。匹配: ${matchedCount}/${features.length}`);
                 return;
             }
 
@@ -616,16 +628,16 @@
                 .attr('fill', f => {
                     const name = selectPAName(f.properties);
                     const m = findMatchingData(name, paByName);
-                    return m && m.green_per_capita_m2 > 0.01 ? color(m.green_per_capita_m2) : '#f0f0f0';
+                    return m && m.green_per_capita_m2 > 0.01 ? color(m.green_per_capita_m2) : '#ffffff';
                 })
-                .attr('stroke', '#ccc')
+                .attr('stroke', '#1a1d24')
                 .attr('stroke-width', 0.5)
                 .attr('opacity', 0.9)
                 .on('mouseenter', function () {
                     d3.select(this).attr('stroke', '#5dc16b').attr('stroke-width', 2).attr('opacity', 1);
                 })
                 .on('mouseleave', function () {
-                    d3.select(this).attr('stroke', '#ccc').attr('stroke-width', 0.5).attr('opacity', 0.9);
+                    d3.select(this).attr('stroke', '#1a1d24').attr('stroke-width', 0.5).attr('opacity', 0.9);
                 })
                 .on('mousemove', (ev, f) => {
                     const name = selectPAName(f.properties);
@@ -641,11 +653,11 @@
             const legendX = width - legendW - 20;
             const legendY = height - 40;
             const legend = g.append('g').attr('transform', `translate(${legendX},${legendY})`);
-
+            
             const steps = color.quantiles();
             const stops = [d3.min(values), ...steps, d3.max(values)];
             const legendStep = legendW / (stops.length - 1);
-
+            
             legend.selectAll('rect')
                 .data(d3.pairs(stops))
                 .join('rect')
@@ -656,27 +668,27 @@
                 .attr('fill', d => color((d[0] + d[1]) / 2))
                 .attr('stroke', '#666')
                 .attr('stroke-width', 0.5);
-
+            
             legend.append('text')
                 .attr('x', 0)
                 .attr('y', legendH + 16)
-                .attr('fill', '#666')
+                .attr('fill', '#d1d5db')
                 .attr('font-size', '11px')
                 .text(d3.format('.1f')(d3.min(values)));
-
+            
             legend.append('text')
                 .attr('x', legendW)
                 .attr('y', legendH + 16)
                 .attr('text-anchor', 'end')
-                .attr('fill', '#666')
+                .attr('fill', '#d1d5db')
                 .attr('font-size', '11px')
                 .text(d3.format('.1f')(d3.max(values)) + ' m²/person');
-
+            
             legend.append('text')
                 .attr('x', legendW / 2)
                 .attr('y', -8)
                 .attr('text-anchor', 'middle')
-                .attr('fill', '#333')
+                .attr('fill', '#e7e9ee')
                 .attr('font-size', '13px')
                 .attr('font-weight', 'bold')
                 .text('Per Capita Green Space (darker = more)');
@@ -706,44 +718,33 @@
                 console.log('Data loaded successfully');
                 console.log('Metrics:', metrics.length);
                 console.log('Geo features:', geo.features.length);
-
-                // Debug: check name matching
-                const sampleMetrics = metrics.slice(0, 5).map(m => m.pa);
-                const sampleGeo = geo.features.slice(0, 5).map(f => selectPAName(f.properties));
-                console.log('Sample metrics names:', sampleMetrics);
-                console.log('Sample geo names:', sampleGeo);
-
+                
                 const filteredForCharts = metrics.filter(d => {
                     const name = (d.pa || '').toUpperCase().trim();
                     return name !== 'WESTERN ISLANDS'
                         && name !== 'TENGAH'
-                        && name !== 'BOON LAY'
                         && name !== 'NORTH-EASTERN ISLANDS'
-                        && name !== 'PIONEER'
-                        && name !== 'TUAS'
                         && name !== 'PAYA LEBAR';
                 });
                 
                 renderScatter(filteredForCharts);
                 renderDivergingBars(filteredForCharts);
                 renderChoropleth(metrics, geo);
-                renderChoropleth(metrics, geo);
-
+                
                 console.log('All visualizations rendered!');
             } catch (err) {
                 console.error('Error:', err);
-                const container = document.querySelector('.container');
-                if (container) {
-                    container.innerHTML =
-                        '<p style="color: #e7e9ee; text-align: center;">Failed to load data. Please check your network connection and file paths.</p>';
-                }
+                document.querySelector('.dashboard-container').innerHTML = 
+                    '<p style="color: #e7e9ee; text-align: center;">无法加载数据。请检查网络连接和文件路径。</p>';
             }
         })();
     </script>
 </body>
 
-
 </html>
+
+
+
 
 
 
