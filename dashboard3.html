@@ -715,7 +715,10 @@
 
                 const filteredForCharts = metrics.filter(d => {
                     const name = (d.pa || '').toUpperCase().trim();
-                    return name !== 'WESTERN ISLANDS' && name !== 'TENGAH' && name !== 'North-Eastern Islands';
+                    return name !== 'WESTERN ISLANDS'
+                        && name !== 'TENGAH'
+                        && name !== 'NORTH-EASTERN ISLANDS'
+                        && name !== 'PAYA LEBAR';
                 });
                 
                 renderScatter(filteredForCharts);
@@ -738,4 +741,5 @@
 
 
 </html>
+
 
