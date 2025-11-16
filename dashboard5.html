@@ -184,6 +184,19 @@
             stroke-width: 4px;
         }
 
+        /* 图例样式 */
+        #map .deficit-legend {
+            pointer-events: none;
+        }
+
+        #map .deficit-legend rect {
+            pointer-events: none;
+        }
+
+        #map .deficit-legend text {
+            pointer-events: none;
+        }
+
         #controls {
             position: absolute;
             top: 15px;
@@ -975,7 +988,11 @@
             // 清除现有内容（除了控制按钮）
             mapSvg.selectAll("*").remove();
             
-            mapSvg.attr("width", width).attr("height", height);
+            // 确保SVG的width和height属性值与容器尺寸一致
+            // 移除可能存在的viewBox，使用固定的width/height
+            mapSvg.attr("width", width)
+                   .attr("height", height)
+                   .attr("viewBox", null); // 移除viewBox，使用固定尺寸
 
             // 添加背景矩形（海洋）
             mapSvg.append("rect")
@@ -1113,40 +1130,7 @@
 
             console.log("Map rendering complete", paDeficitData.length, "planning areas");
 
-            // 添加图例（在地图右下角）
-            const legendWidth = 200;
-            const legendHeight = 140; // 增加高度以容纳计算方式说明
-            const legendX = width - legendWidth - 20;
-            const legendY = height - legendHeight - 20;
-
-            // 移除旧的图例（如果存在）
-            mapSvg.selectAll(".deficit-legend").remove();
-
-            const legendG = mapSvg.append("g")
-                .attr("class", "deficit-legend")
-                .attr("transform", `translate(${legendX}, ${legendY})`);
-
-            // 图例背景
-            legendG.append("rect")
-                .attr("width", legendWidth)
-                .attr("height", legendHeight)
-                .attr("fill", "white")
-                .attr("fill-opacity", 0.9)
-                .attr("stroke", "#ccc")
-                .attr("stroke-width", 1)
-                .attr("rx", 4);
-
-            // 图例标题
-            legendG.append("text")
-                .attr("x", legendWidth / 2)
-                .attr("y", 15)
-                .attr("text-anchor", "middle")
-                .attr("font-size", "12px")
-                .attr("font-weight", "bold")
-                .attr("fill", "#333")
-                .text("Deficit Score");
-
-            // 创建渐变定义（如果不存在）
+            // 创建渐变定义（必须在图例之前创建）
             let defs = mapSvg.select("defs");
             if (defs.empty()) {
                 defs = mapSvg.append("defs");
@@ -1173,63 +1157,6 @@
                     .attr("stop-color", color);
             }
 
-            // 绘制渐变条
-            const gradientBarWidth = legendWidth - 40;
-            const gradientBarHeight = 20;
-            const gradientBarX = 20;
-            const gradientBarY = 30;
-
-            legendG.append("rect")
-                .attr("x", gradientBarX)
-                .attr("y", gradientBarY)
-                .attr("width", gradientBarWidth)
-                .attr("height", gradientBarHeight)
-                .attr("fill", "url(#deficit-gradient)")
-                .attr("stroke", "#999")
-                .attr("stroke-width", 0.5);
-
-            // 添加最小值和最大值标签
-            legendG.append("text")
-                .attr("x", gradientBarX)
-                .attr("y", gradientBarY + gradientBarHeight + 15)
-                .attr("font-size", "10px")
-                .attr("fill", "#666")
-                .text(minScore.toFixed(3));
-
-            legendG.append("text")
-                .attr("x", gradientBarX + gradientBarWidth)
-                .attr("y", gradientBarY + gradientBarHeight + 15)
-                .attr("text-anchor", "end")
-                .attr("font-size", "10px")
-                .attr("fill", "#666")
-                .text(maxScore.toFixed(3));
-
-            // 添加计算方式说明
-            legendG.append("text")
-                .attr("x", legendWidth / 2)
-                .attr("y", gradientBarY + gradientBarHeight + 35)
-                .attr("text-anchor", "middle")
-                .attr("font-size", "9px")
-                .attr("fill", "#666")
-                .attr("font-style", "italic")
-                .text("Calculation:");
-
-            legendG.append("text")
-                .attr("x", legendWidth / 2)
-                .attr("y", gradientBarY + gradientBarHeight + 48)
-                .attr("text-anchor", "middle")
-                .attr("font-size", "9px")
-                .attr("fill", "#666")
-                .text("(1 - NormPerCapita) + NormAvgDistance");
-
-            legendG.append("text")
-                .attr("x", legendWidth / 2)
-                .attr("y", gradientBarY + gradientBarHeight + 61)
-                .attr("text-anchor", "middle")
-                .attr("font-size", "8px")
-                .attr("fill", "#888")
-                .text("Higher = More Deficit");
-
             // 绘制现有公园（使用dashboard2样式）
             // dotsG已经在上面创建了
             if (parksData && parksData.features) {
@@ -1255,6 +1182,119 @@
                         hideTooltip();
                     });
             }
+
+            // 添加图例（在地图右下角）- 在所有地图内容绘制完成后添加，确保在最上层
+            // 注意：控制按钮在右上角，所以图例放在右下角
+            // 使用SVG的width和height属性值（已设置的），确保图例位置正确
+            // 如果SVG有viewBox，坐标系统可能不同，但这里我们直接使用设置的width/height
+            const svgWidth = parseFloat(mapSvg.attr("width")) || width;
+            const svgHeight = parseFloat(mapSvg.attr("height")) || height;
+            
+            const legendWidth = 133; // 缩小1/3 (200 * 2/3)
+            const legendHeight = 93; // 缩小1/3 (140 * 2/3)
+            // 使用SVG的实际尺寸计算位置，确保图例在可见区域内
+            const legendX = Math.max(10, svgWidth - legendWidth - 20); // 确保不会超出左边界
+            const legendY = Math.max(10, svgHeight - legendHeight - 200); // 再往上挪1/3 (150 + 50)
+
+            console.log("Creating legend at:", { 
+                legendX, legendY, 
+                containerWidth: width, containerHeight: height,
+                svgWidth, svgHeight,
+                legendWidth, legendHeight 
+            });
+
+            // 移除旧的图例（如果存在）
+            mapSvg.selectAll(".deficit-legend").remove();
+
+            const legendG = mapSvg.append("g")
+                .attr("class", "deficit-legend")
+                .attr("transform", `translate(${legendX}, ${legendY})`)
+                .style("pointer-events", "none"); // 避免图例干扰地图交互
+
+            // 图例背景
+            legendG.append("rect")
+                .attr("width", legendWidth)
+                .attr("height", legendHeight)
+                .attr("fill", "white")
+                .attr("fill-opacity", 0.95)
+                .attr("stroke", "#ccc")
+                .attr("stroke-width", 1.5)
+                .attr("rx", 4);
+
+            // 图例标题
+            legendG.append("text")
+                .attr("x", legendWidth / 2)
+                .attr("y", 10)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "8px")
+                .attr("font-weight", "bold")
+                .attr("fill", "#333")
+                .text("Deficit Score");
+
+            // 绘制渐变条
+            const gradientBarWidth = legendWidth - 27;
+            const gradientBarHeight = 13;
+            const gradientBarX = 13;
+            const gradientBarY = 20;
+
+            legendG.append("rect")
+                .attr("x", gradientBarX)
+                .attr("y", gradientBarY)
+                .attr("width", gradientBarWidth)
+                .attr("height", gradientBarHeight)
+                .attr("fill", "url(#deficit-gradient)")
+                .attr("stroke", "#999")
+                .attr("stroke-width", 0.5);
+
+            // 添加最小值和最大值标签
+            legendG.append("text")
+                .attr("x", gradientBarX)
+                .attr("y", gradientBarY + gradientBarHeight + 10)
+                .attr("font-size", "7px")
+                .attr("fill", "#666")
+                .text(minScore.toFixed(3));
+
+            legendG.append("text")
+                .attr("x", gradientBarX + gradientBarWidth)
+                .attr("y", gradientBarY + gradientBarHeight + 10)
+                .attr("text-anchor", "end")
+                .attr("font-size", "7px")
+                .attr("fill", "#666")
+                .text(maxScore.toFixed(3));
+
+            // 添加计算方式说明
+            legendG.append("text")
+                .attr("x", legendWidth / 2)
+                .attr("y", gradientBarY + gradientBarHeight + 23)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "6px")
+                .attr("fill", "#666")
+                .attr("font-style", "italic")
+                .text("Calculation:");
+
+            legendG.append("text")
+                .attr("x", legendWidth / 2)
+                .attr("y", gradientBarY + gradientBarHeight + 32)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "6px")
+                .attr("fill", "#666")
+                .text("(1 - NormPerCapita) +");
+
+            legendG.append("text")
+                .attr("x", legendWidth / 2)
+                .attr("y", gradientBarY + gradientBarHeight + 41)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "6px")
+                .attr("fill", "#666")
+                .text("NormAvgDistance");
+
+            legendG.append("text")
+                .attr("x", legendWidth / 2)
+                .attr("y", gradientBarY + gradientBarHeight + 50)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "5px")
+                .attr("fill", "#888")
+                .text("Higher = More Deficit");
 
             // 添加地图点击事件（用于添加新公园）- 只绑定一次
             // 注意：需要在zoom之后处理，考虑当前的transform
@@ -1940,7 +1980,10 @@
                     const width = containerNode.clientWidth;
                     const height = containerNode.clientHeight;
 
-                    mapSvg.attr("width", width).attr("height", height);
+                    // 确保SVG的width和height属性值与容器尺寸一致
+                    mapSvg.attr("width", width)
+                           .attr("height", height)
+                           .attr("viewBox", null); // 移除viewBox，使用固定尺寸
 
                     // 使用fitExtent（与dashboard2一致）
                     const margin = { top: 4, right: 4, bottom: 4, left: 4 };
@@ -2044,40 +2087,7 @@
                     // 重新绘制临时公园
                     tempParks.forEach(park => addTempParkToMap(park));
                     
-                    // 重新绘制图例
-                    const legendWidth = 200;
-                    const legendHeight = 140;
-                    const legendX = width - legendWidth - 20;
-                    const legendY = height - legendHeight - 20;
-
-                    // 移除旧的图例（如果存在）
-                    mapSvg.selectAll(".deficit-legend").remove();
-
-                    const legendG = mapSvg.append("g")
-                        .attr("class", "deficit-legend")
-                        .attr("transform", `translate(${legendX}, ${legendY})`);
-
-                    // 图例背景
-                    legendG.append("rect")
-                        .attr("width", legendWidth)
-                        .attr("height", legendHeight)
-                        .attr("fill", "white")
-                        .attr("fill-opacity", 0.9)
-                        .attr("stroke", "#ccc")
-                        .attr("stroke-width", 1)
-                        .attr("rx", 4);
-
-                    // 图例标题
-                    legendG.append("text")
-                        .attr("x", legendWidth / 2)
-                        .attr("y", 15)
-                        .attr("text-anchor", "middle")
-                        .attr("font-size", "12px")
-                        .attr("font-weight", "bold")
-                        .attr("fill", "#333")
-                        .text("Deficit Score");
-
-                    // 创建渐变定义（如果不存在）
+                    // 创建渐变定义（必须在图例之前创建）
                     let defs = mapSvg.select("defs");
                     if (defs.empty()) {
                         defs = mapSvg.append("defs");
@@ -2103,12 +2113,50 @@
                             .attr("offset", `${t * 100}%`)
                             .attr("stop-color", color);
                     }
+                    
+                    // 重新绘制图例
+                    // 使用SVG的width和height属性值，确保图例位置正确
+                    const svgWidth = parseFloat(mapSvg.attr("width")) || width;
+                    const svgHeight = parseFloat(mapSvg.attr("height")) || height;
+                    
+                    const legendWidth = 133; // 缩小1/3 (200 * 2/3)
+                    const legendHeight = 93; // 缩小1/3 (140 * 2/3)
+                    const legendX = Math.max(10, svgWidth - legendWidth - 20);
+                    const legendY = Math.max(10, svgHeight - legendHeight - 250); // 再往上挪1/3 (150 + 50)
+
+                    // 移除旧的图例（如果存在）
+                    mapSvg.selectAll(".deficit-legend").remove();
+
+                    const legendG = mapSvg.append("g")
+                        .attr("class", "deficit-legend")
+                        .attr("transform", `translate(${legendX}, ${legendY})`)
+                        .style("pointer-events", "none"); // 避免图例干扰地图交互
+
+                    // 图例背景
+                    legendG.append("rect")
+                        .attr("width", legendWidth)
+                        .attr("height", legendHeight)
+                        .attr("fill", "white")
+                        .attr("fill-opacity", 0.95)
+                        .attr("stroke", "#ccc")
+                        .attr("stroke-width", 1.5)
+                        .attr("rx", 4);
+
+                    // 图例标题
+                    legendG.append("text")
+                        .attr("x", legendWidth / 2)
+                        .attr("y", 10)
+                        .attr("text-anchor", "middle")
+                        .attr("font-size", "8px")
+                        .attr("font-weight", "bold")
+                        .attr("fill", "#333")
+                        .text("Deficit Score");
 
                     // 绘制渐变条
-                    const gradientBarWidth = legendWidth - 40;
-                    const gradientBarHeight = 20;
-                    const gradientBarX = 20;
-                    const gradientBarY = 30;
+                    const gradientBarWidth = legendWidth - 27;
+                    const gradientBarHeight = 13;
+                    const gradientBarX = 13;
+                    const gradientBarY = 20;
 
                     legendG.append("rect")
                         .attr("x", gradientBarX)
@@ -2122,42 +2170,50 @@
                     // 添加最小值和最大值标签
                     legendG.append("text")
                         .attr("x", gradientBarX)
-                        .attr("y", gradientBarY + gradientBarHeight + 15)
-                        .attr("font-size", "10px")
+                        .attr("y", gradientBarY + gradientBarHeight + 10)
+                        .attr("font-size", "7px")
                         .attr("fill", "#666")
                         .text(minScore.toFixed(3));
 
                     legendG.append("text")
                         .attr("x", gradientBarX + gradientBarWidth)
-                        .attr("y", gradientBarY + gradientBarHeight + 15)
+                        .attr("y", gradientBarY + gradientBarHeight + 10)
                         .attr("text-anchor", "end")
-                        .attr("font-size", "10px")
+                        .attr("font-size", "7px")
                         .attr("fill", "#666")
                         .text(maxScore.toFixed(3));
 
                     // 添加计算方式说明
                     legendG.append("text")
                         .attr("x", legendWidth / 2)
-                        .attr("y", gradientBarY + gradientBarHeight + 35)
+                        .attr("y", gradientBarY + gradientBarHeight + 23)
                         .attr("text-anchor", "middle")
-                        .attr("font-size", "9px")
+                        .attr("font-size", "6px")
                         .attr("fill", "#666")
                         .attr("font-style", "italic")
                         .text("Calculation:");
 
                     legendG.append("text")
                         .attr("x", legendWidth / 2)
-                        .attr("y", gradientBarY + gradientBarHeight + 48)
+                        .attr("y", gradientBarY + gradientBarHeight + 32)
                         .attr("text-anchor", "middle")
-                        .attr("font-size", "9px")
+                        .attr("font-size", "6px")
                         .attr("fill", "#666")
-                        .text("(1 - NormPerCapita) + NormAvgDistance");
+                        .text("(1 - NormPerCapita) +");
 
                     legendG.append("text")
                         .attr("x", legendWidth / 2)
-                        .attr("y", gradientBarY + gradientBarHeight + 61)
+                        .attr("y", gradientBarY + gradientBarHeight + 41)
                         .attr("text-anchor", "middle")
-                        .attr("font-size", "8px")
+                        .attr("font-size", "6px")
+                        .attr("fill", "#666")
+                        .text("NormAvgDistance");
+
+                    legendG.append("text")
+                        .attr("x", legendWidth / 2)
+                        .attr("y", gradientBarY + gradientBarHeight + 50)
+                        .attr("text-anchor", "middle")
+                        .attr("font-size", "5px")
                         .attr("fill", "#888")
                         .text("Higher = More Deficit");
                 }
