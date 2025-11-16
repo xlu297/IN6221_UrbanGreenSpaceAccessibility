@@ -193,7 +193,7 @@
                         Other Layers</div>
                     <div style="display: flex; align-items: center;">
                         <div style="width: 15px; height: 2px; background: #544945; margin-right: 8px;"></div><span
-                            style="font-size: 9px;" id="tracks-count">NParks Tracks</span>
+                            style="font-size: 9px;" id="tracks-count">Park Connector Network (PCN)</span>
                     </div>
                 </div>
             </div>
@@ -243,13 +243,13 @@
             g.selectAll("path.track").data(tracksData.features).enter().append("path")
                 .attr("class", "track").attr("d", path).attr("fill", "none")
                 .attr("stroke", "#544945").attr("stroke-width", 2.5).attr("opacity", 0.8)
-                .on("mouseover", function (event, d) { d3.select(this).attr("stroke-width", 4).attr("opacity", 1); tooltip.style("display", "block").html(`<strong>NParks Track/Path</strong><br/>Track ID: ${d.id || 'N/A'}`); })
+                .on("mouseover", function (event, d) { d3.select(this).attr("stroke-width", 4).attr("opacity", 1); tooltip.style("display", "block").html(`<strong>Park Connector Network (PCN)</strong><br/>Track ID: ${d.id || 'N/A'}`); })
                 .on("mousemove", function (event) { tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px"); })
                 .on("mouseout", function () { d3.select(this).attr("stroke-width", 2.5).attr("opacity", 0.8); tooltip.style("display", "none"); });
 
             const zoom = d3.zoom().scaleExtent([1, 8]).on("zoom", (event) => { g.attr("transform", event.transform); });
             svg.call(zoom);
-            document.getElementById("tracks-count").textContent = `NParks Tracks`;
+            document.getElementById("tracks-count").textContent = `Park Connector Network (PCN)`;
         }
 
         /**

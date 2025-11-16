@@ -6,14 +6,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard 1</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <!-- Turf (for polygon winding correction) -->
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
   <link rel="stylesheet" href="style.css">
   <style>
+    /* Morandi Green Color Palette */
+    :root {
+      --morandi-bg: #F5F9F6;
+      --morandi-bg-light: #F9FBF9;
+      --morandi-card: #FFFFFF;
+      --morandi-card-alt: #F1F8E9;
+      --morandi-green-1: #E8F5E9;
+      --morandi-green-2: #C8E6C9;
+      --morandi-green-3: #A5D6A7;
+      --morandi-green-4: #81C784;
+      --morandi-green-5: #66BB6A;
+      --morandi-green-6: #4CAF50;
+      --morandi-green-dark: #2E7D32;
+      --morandi-text: #4A5D4A;
+      --morandi-text-dark: #2E3D2E;
+      --morandi-border: #DCEDC8;
+      --morandi-shadow: rgba(76, 175, 80, 0.08);
+      --morandi-shadow-hover: rgba(76, 175, 80, 0.15);
+    }
+
     html,
     body {
       height: 100%;
-      overflow: hidden;
+      overflow: auto;
       margin: 0;
       padding: 0;
+      background: linear-gradient(135deg, var(--morandi-bg) 0%, var(--morandi-bg-light) 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
     body {
@@ -23,21 +47,214 @@
 
     .container {
       flex: 1;
-      overflow: hidden;
+      overflow: auto;
       padding: 0;
       display: flex;
       flex-direction: column;
+      background: transparent;
     }
 
-    .chart {
-      flex: 1;
+    .charts-container {
+      flex: 0 0 40%;
+      min-height: 40vh;
+      padding: 30px;
+      background: linear-gradient(to bottom, var(--morandi-bg-light), var(--morandi-bg));
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .chart-panel {
+      background: var(--morandi-card);
+      border: 1px solid var(--morandi-border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 12px var(--morandi-shadow);
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .chart-panel:hover {
+      box-shadow: 0 6px 20px var(--morandi-shadow-hover);
+      transform: translateY(-2px);
+      border-color: var(--morandi-green-3);
+    }
+
+    .chart-panel h3 {
+      margin: 0 0 15px 0;
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--morandi-green-dark);
+      letter-spacing: 0.3px;
+    }
+
+    .chart-panel.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .chart-svg {
+      width: 100%;
       height: 100%;
-      margin: 0;
-      overflow: hidden;
     }
 
-    iframe {
-      display: block;
+    .tooltip {
+      position: absolute;
+      pointer-events: none;
+      background: rgba(46, 125, 50, 0.95);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      line-height: 1.5;
+      opacity: 0;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      backdrop-filter: blur(10px);
+    }
+
+    /* db1.html styles with Morandi Green */
+    .db1-wrap { 
+      max-width: 1400px; 
+      margin: 0 auto; 
+      padding: 30px 20px;
+      background: transparent;
+    }
+    .db1-header h1 { 
+      padding-bottom: 15px; 
+      font-size: 26px; 
+      margin: 0;
+      color: var(--morandi-green-dark);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    .db1-kpi { 
+      display: grid; 
+      grid-template-columns: repeat(4, 1fr); 
+      gap: 20px; 
+      margin-bottom: 24px; 
+    }
+    .db1-card { 
+      background: linear-gradient(135deg, var(--morandi-card) 0%, var(--morandi-card-alt) 100%);
+      border: 1px solid var(--morandi-border);
+      border-radius: 16px; 
+      padding: 18px 20px; 
+      min-height: 60px;
+      box-shadow: 0 3px 10px var(--morandi-shadow);
+      transition: all 0.3s ease;
+    }
+    .db1-card:hover {
+      box-shadow: 0 5px 16px var(--morandi-shadow-hover);
+      transform: translateY(-2px);
+      border-color: var(--morandi-green-4);
+    }
+    .db1-k-title { 
+      font-size: 12px; 
+      color: var(--morandi-text);
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .db1-k-val { 
+      font-size: 22px; 
+      font-weight: 700; 
+      margin-top: 6px;
+      color: var(--morandi-green-dark);
+    }
+    .db1-row { 
+      display: grid; 
+      grid-template-columns: 2fr 1fr; 
+      gap: 20px; 
+      margin-bottom: 20px;
+    }
+    .db1-row .db1-panel:last-child {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .bar-chart-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .bar-chart-svg {
+      width: 100%;
+      height: 100%;
+      max-width: 600px;
+      max-height: 500px;
+    }
+    .db1-row2 { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      gap: 20px; 
+      margin-top: 20px; 
+    }
+    .db1-panel { 
+      background: var(--morandi-card);
+      border: 1px solid var(--morandi-border);
+      border-radius: 16px; 
+      padding: 20px; 
+      min-height: 120px;
+      box-shadow: 0 4px 12px var(--morandi-shadow);
+      transition: all 0.3s ease;
+    }
+    .db1-panel:hover {
+      box-shadow: 0 6px 20px var(--morandi-shadow-hover);
+      border-color: var(--morandi-green-3);
+    }
+    .db1-tooltip { 
+      position: absolute; 
+      pointer-events: none; 
+      background: rgba(46, 125, 50, 0.95);
+      color: #fff; 
+      padding: 10px 14px; 
+      border-radius: 10px; 
+      font-size: 12px; 
+      line-height: 1.5;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      backdrop-filter: blur(10px);
+    }
+    .db1-panel h3 { 
+      margin: 10px 0 12px; 
+      color: var(--morandi-green-dark);
+      font-weight: 600;
+      font-size: 16px;
+      letter-spacing: 0.3px;
+    }
+    #donut-legend {
+      min-width: 200px;
+      padding: 10px;
+    }
+    .legend-item {
+      transition: opacity 0.2s ease;
+    }
+    .db1-error { 
+      background: #FFF3E0; 
+      border: 1px solid #FFCC80; 
+      color: #E65100; 
+      padding: 12px 16px; 
+      border-radius: 12px; 
+      margin: 10px 0; 
+      white-space: pre-wrap;
+      box-shadow: 0 2px 8px rgba(230, 81, 0, 0.1);
+    }
+
+    /* SVG text styling */
+    svg text {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    /* Axis styling */
+    .axis text {
+      fill: var(--morandi-text);
+      font-size: 11px;
+    }
+
+    .axis line,
+    .axis path {
+      stroke: var(--morandi-border);
+      stroke-width: 1;
     }
   </style>
 </head>
@@ -55,11 +272,504 @@
   </div>
 
   <div class="container">
-    <!-- Embedded entire db1.html -->
-    <div class="chart" style="height:100vh;">
-      <iframe src="src/db1.html" style="width:100%; height:100%; border:none;"></iframe>
+    <!-- db1.html content embedded directly -->
+    <div class="db1-wrap">
+      <div class="db1-header">
+        <h1>"Pressure": Singapore's High-Density Urban Environment</h1>
+        <div id="errBox"></div>
+      </div>
+
+      <section class="db1-kpi">
+        <div class="db1-card" id="k1"></div>
+        <div class="db1-card" id="k2"></div>
+        <div class="db1-card" id="k3"></div>
+        <div class="db1-card" id="k4"></div>
+      </section>
+
+      <section class="db1-row">
+        <div class="db1-panel">
+          <h3>Population Density by Planning Area</h3>
+          <svg id="map" width="860" height="560"></svg>
+        </div>
+        <div class="db1-panel bar-chart-container">
+          <h3>Top 10 Planning Areas by Population Density</h3>
+          <svg id="bar" class="bar-chart-svg"></svg>
+        </div>
+      </section>
+
+      <section class="db1-row2">
+        <div class="db1-panel">
+          <h3>Land Use Composition</h3>
+          <div style="display: flex; align-items: center; justify-content: center; gap: 30px;">
+            <svg id="donut" width="400" height="400"></svg>
+            <div id="donut-legend" style="flex: 0 0 auto;"></div>
+          </div>
+        </div>
+        <div class="db1-panel">
+          <h3>Green Area Distribution</h3>
+          <svg id="green-area-histogram" class="chart-svg"></svg>
+        </div>
+      </section>
     </div>
+
   </div>
+
+  <div class="tooltip" id="tooltip"></div>
+
+  <script>
+    // ========== db1.html script (embedded) ==========
+    (function() {
+      const GEOJSON_FILE = "src/planning_area.json";
+      const POP_FILE = "src/population_by_pa.csv";
+      const LANDUSE_FILE = "src/land_use_citywide.csv";
+      const SG_TOTAL_AREA_KM2 = 738;
+
+      const mapW = 860, mapH = 560;
+      const barW = 520, barH = 420, barMargin = {top: 28, right: 16, bottom: 44, left: 160};
+      const donutW = 400, donutH = 400, donutR = Math.min(donutW, donutH) * 0.45;
+
+      // util
+      const toKey = s => (s || "").trim().toUpperCase().replace(/\s+/g, " ");
+      const parseNum = v => +String(v ?? "").replace(/,/g,"").trim();
+      const fmtNum = d3.format(","), fmt1 = d3.format(",.1f"), fmt0 = d3.format(",.0f");
+      const errBox = d3.select("#errBox");
+      const showError = (msg,e) => { 
+        console.error(msg,e); 
+        errBox.append("div").attr("class","db1-error").text(`${msg}\n${e?.message ?? e ?? ""}`); 
+      };
+
+      // Morandi Green color helpers
+      const morandiGreens = ['#E8F5E9', '#C8E6C9', '#A5D6A7', '#81C784', '#66BB6A', '#4CAF50', '#388E3C', '#2E7D32'];
+      const interpolateMorandi = (t) => {
+        const colors = morandiGreens;
+        const i = Math.floor(t * (colors.length - 1));
+        const f = (t * (colors.length - 1)) - i;
+        return d3.interpolateRgb(colors[i], colors[Math.min(i + 1, colors.length - 1)])(f);
+      };
+      // for ordinal palettes (donut), generate n shades from morandi green palette
+      const morandiPalette = (n) => {
+        const colors = morandiGreens;
+        return d3.range(n).map(i => {
+          const idx = Math.floor((i / (n - 1)) * (colors.length - 1));
+          return colors[Math.min(idx, colors.length - 1)];
+        });
+      };
+
+      (async function main(){
+        try {
+          const mapSvg = d3.select("#map");
+          const barSvg = d3.select("#bar");
+          const donutSvg = d3.select("#donut").append("g").attr("transform",`translate(${donutW/2},${donutH/2})`);
+
+          const projection = d3.geoMercator().center([103.851959, 1.29027]).scale(60000).translate([mapW/2, mapH/2]);
+          const path = d3.geoPath(projection);
+
+          // Load data
+          let rawGeo;
+          try { rawGeo = await d3.json(GEOJSON_FILE); }
+          catch(e){ showError(`Failed to load ${GEOJSON_FILE}. Please ensure it is in the same folder.`, e); return; }
+
+          let popRows = [];
+          try { popRows = await d3.csv(POP_FILE, d => ({ pa: toKey(d.Planning_Area), pop: +d.Population })); }
+          catch(e){ showError(`Failed to load ${POP_FILE}. Ensure columns: Planning_Area, Population.`, e); return; }
+
+          let landuseRaw = [];
+          try { landuseRaw = await d3.csv(LANDUSE_FILE); }
+          catch(e){ showError(`Failed to load ${LANDUSE_FILE}. Please check if it's in the same folder.`, e); }
+
+          // Geometry correction
+          const geo = turf.rewind(rawGeo, { reverse:true, mutate:true });
+
+          // Clip path
+          const defs = mapSvg.append("defs");
+          const clipId = "sg-clip-" + Math.random().toString(36).slice(2);
+          defs.append("clipPath").attr("id", clipId)
+            .selectAll("path").data(geo.features).join("path").attr("d", d => path(d));
+
+          // Population mapping
+          const popMap = new Map(popRows.map(d => [d.pa, d.pop]));
+
+          // Area normalization
+          const pxAreas = geo.features.map(f => path.area(f));
+          const km2PerPx = SG_TOTAL_AREA_KM2 / d3.sum(pxAreas);
+
+          const stats = geo.features.map((f, i) => {
+            const name = toKey(f.properties?.PLN_AREA_N);
+            const areaKm2 = pxAreas[i] * km2PerPx;
+            const pop = popMap.get(name) || 0;
+            const dens = areaKm2 > 0 ? pop / areaKm2 : 0;
+            return { name, areaKm2, pop, dens, feature: f };
+          });
+
+          // KPIs
+          const totalPop = d3.sum(stats, d => d.pop);
+          const totalArea = d3.sum(stats, d => d.areaKm2);
+          const avgDens = totalArea ? totalPop / totalArea : 0;
+          const topDense = stats.reduce((a,b)=> a.dens>b.dens?a:b, stats[0]);
+
+          d3.select("#k1").html(`<div class="db1-k-title">Total Population</div><div class="db1-k-val">${fmtNum(totalPop)}</div>`);
+          d3.select("#k2").html(`<div class="db1-k-title">Total Area (km²)</div><div class="db1-k-val">${fmt1(totalArea)}</div>`);
+          d3.select("#k3").html(`<div class="db1-k-title">Average Density</div><div class="db1-k-val">${fmt0(avgDens)} / km²</div>`);
+          d3.select("#k4").html(`<div class="db1-k-title">Most Dense Area</div><div class="db1-k-val">${topDense?.name || "-"}</div>`);
+
+          // Choropleth Map (Morandi Green palette)
+          const densExtent = d3.extent(stats, d => d.dens);
+          const color = d3.scaleSequential(interpolateMorandi).domain(densExtent);
+
+          const g = mapSvg.append("g").attr("clip-path", `url(#${clipId})`);
+          const db1Tooltip = d3.select("body").append("div").attr("class","db1-tooltip").style("opacity",0);
+
+          g.selectAll("path").data(stats).join("path")
+            .attr("d", d => path(d.feature))
+            .attr("fill", d => color(d.dens))
+            .attr("stroke", "#fff").attr("stroke-width", 0.6)
+            .on("mousemove", (ev, d) => {
+              db1Tooltip.style("opacity", 1).html(
+                `<strong>${d.name}</strong><br/>` +
+                `Population: ${fmtNum(d.pop)}<br/>` +
+                `Area: ${fmt1(d.areaKm2)} km²<br/>` +
+                `Density: ${fmt0(d.dens)} / km²`
+              ).style("left", (ev.pageX + 12) + "px").style("top", (ev.pageY + 12) + "px");
+            })
+            .on("mouseleave", () => db1Tooltip.style("opacity", 0));
+
+          createLegend({svg: mapSvg, color, x: 16, y: mapH - 56, width: 340, title: "Population Density (people/km²)"});
+
+          // Top 10 Bar Chart — responsive size
+          const top10 = stats.filter(d=>d.pop>0 && isFinite(d.dens))
+            .sort((a,b)=>d3.descending(a.dens,b.dens)).slice(0,10);
+
+          // Get container size for responsive chart
+          const barContainer = barSvg.node().parentElement;
+          const barContainerWidth = barContainer.clientWidth || 600;
+          const barContainerHeight = barContainer.clientHeight || 500;
+          const barW_responsive = barContainerWidth - 40;
+          const barH_responsive = barContainerHeight - 60;
+          const barMargin_responsive = {top: 40, right: 20, bottom: 50, left: 140};
+
+          barSvg.attr("width", barContainerWidth)
+                 .attr("height", barContainerHeight)
+                 .attr("viewBox", `0 0 ${barContainerWidth} ${barContainerHeight}`)
+                 .attr("preserveAspectRatio", "xMidYMid meet");
+
+          const x = d3.scaleLinear().domain([0, d3.max(top10,d=>d.dens)]).range([barMargin_responsive.left, barW_responsive - barMargin_responsive.right]);
+          const y = d3.scaleBand().domain(top10.map(d=>d.name)).range([barMargin_responsive.top, barH_responsive - barMargin_responsive.bottom]).padding(0.15);
+
+          // Title removed (now in HTML)
+
+          // bar color uses Morandi Green sequential scale mapped to density range of top10
+          const colorBar = d3.scaleSequential(interpolateMorandi).domain([d3.min(top10,d=>d.dens), d3.max(top10,d=>d.dens)]);
+
+          barSvg.append("g").selectAll("rect").data(top10).join("rect")
+            .attr("x", x(0)).attr("y", d => y(d.name))
+            .attr("width", d => x(d.dens)-x(0)).attr("height", y.bandwidth())
+            .attr("fill", d => colorBar(d.dens))
+            .attr("stroke", "#fff").attr("stroke-width", 0.5)
+            .on("mousemove", (ev, d) => {
+              db1Tooltip.style("opacity", 1).html(
+                `<strong>${d.name}</strong><br/>` +
+                `Density: ${fmt0(d.dens)} / km²<br/>` +
+                `Population: ${fmtNum(d.pop)}<br/>` +
+                `Area: ${fmt1(d.areaKm2)} km²`
+              ).style("left", (ev.pageX + 12) + "px").style("top", (ev.pageY + 12) + "px");
+            })
+            .on("mouseleave", () => db1Tooltip.style("opacity", 0));
+
+          barSvg.append("g").attr("transform", `translate(0,${barH_responsive - barMargin_responsive.bottom})`)
+            .attr("class", "axis")
+            .call(d3.axisBottom(x).ticks(5).tickFormat(d3.format(".2s")))
+            .selectAll("text")
+            .style("font-size", "11px")
+            .style("fill", "#4A5D4A");
+          barSvg.append("g").attr("transform", `translate(${barMargin_responsive.left},0)`)
+            .attr("class", "axis")
+            .call(d3.axisLeft(y))
+            .selectAll("text")
+            .style("font-size", "11px")
+            .style("fill", "#4A5D4A");
+
+          // X-axis label
+          barSvg.append("text")
+            .attr("x", barW_responsive / 2)
+            .attr("y", barH_responsive - 10)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("fill", "#4A5D4A")
+            .style("font-weight", "500")
+            .text("Population Density (people/km²)");
+
+          // Donut Chart (Land Use) — ordinal colors sampled from YlOrRd
+          let landuse = [];
+          if (landuseRaw && landuseRaw.length){
+            landuse = landuseRaw.map(d => {
+              const cat = (d.Category ?? d.category ?? d.CATEGORY ?? "").toString().trim();
+              let areaKm2 = NaN;
+              if (d.Area_km2 != null) {
+                areaKm2 = parseNum(d.Area_km2);
+              } else if (d.Hectares != null || d.hectares != null) {
+                areaKm2 = parseNum(d.Hectares ?? d.hectares) / 100;
+              }
+              return { cat, area: areaKm2 };
+            }).filter(d => d.cat && isFinite(d.area) && d.area>0);
+          }
+
+          if (!landuse.length){
+            showError(`No valid land-use data found. Please include two columns in ${LANDUSE_FILE}:\n1) Category\n2) Area_km2 or Hectares (auto-converted)`);
+          } else {
+            // sort by area (optional, nicer gradients)
+            landuse.sort((a,b)=>d3.descending(a.area,b.area));
+            const totalLU = d3.sum(landuse, d=>d.area);
+
+            const pie = d3.pie().value(d=>d.area)(landuse);
+            const arc = d3.arc().innerRadius(donutR*0.6).outerRadius(donutR);
+
+            const colors = morandiPalette(landuse.length);
+            const color2 = d3.scaleOrdinal().domain(landuse.map(d=>d.cat)).range(colors);
+
+            const donutG = donutSvg.selectAll("path").data(pie).join("path")
+              .attr("d", arc).attr("fill", d=>color2(d.data.cat))
+              .attr("stroke","#fff").attr("stroke-width",0.6);
+
+            donutG.append("title").text(d => `${d.data.cat}: ${fmt1(d.data.area)} km² (${d3.format(".1%")(d.data.area/totalLU)})`);
+
+            // center labels
+            donutSvg.append("text").attr("text-anchor","middle").attr("dy","-0.2em")
+              .style("font-weight",600)
+              .style("fill","#2E7D32")
+              .text("Total");
+            donutSvg.append("text").attr("text-anchor","middle").attr("dy","1.1em")
+              .style("fill","#4A5D4A")
+              .style("font-size","13px")
+              .text(`${fmt1(totalLU)} km²`);
+
+            // Create legend instead of slice labels
+            const legend = d3.select("#donut-legend");
+            legend.selectAll("*").remove();
+            
+            const legendItems = legend.selectAll("div.legend-item")
+              .data(landuse)
+              .join("div")
+              .attr("class", "legend-item")
+              .style("display", "flex")
+              .style("align-items", "center")
+              .style("margin-bottom", "12px")
+              .style("cursor", "pointer")
+              .on("mouseover", function(ev, d) {
+                // Highlight corresponding slice
+                donutG.filter(p => p.data.cat === d.cat)
+                  .attr("opacity", 0.7)
+                  .attr("stroke-width", 2);
+                d3.select(this).style("opacity", 0.7);
+              })
+              .on("mouseout", function(ev, d) {
+                // Reset
+                donutG.attr("opacity", 1).attr("stroke-width", 0.6);
+                d3.select(this).style("opacity", 1);
+              });
+
+            legendItems.append("div")
+              .style("width", "18px")
+              .style("height", "18px")
+              .style("background-color", d => color2(d.cat))
+              .style("border", "1px solid #fff")
+              .style("border-radius", "3px")
+              .style("margin-right", "10px")
+              .style("flex-shrink", "0");
+
+            legendItems.append("div")
+              .style("display", "flex")
+              .style("flex-direction", "column")
+              .html(d => {
+                const pct = d3.format(".1%")(d.area / totalLU);
+                return `<span style="color: #2E7D32; font-weight: 500; font-size: 13px;">${d.cat}</span>
+                        <span style="color: #4A5D4A; font-size: 11px; margin-top: 2px;">${fmt1(d.area)} km² (${pct})</span>`;
+              });
+          }
+        } catch (e) {
+          showError("Unexpected error occurred.", e);
+        }
+
+        // legend helper
+        function createLegend({svg, color, x, y, width=260, ticks=6, title=""}) {
+          const legend = svg.append("g").attr("transform", `translate(${x},${y})`);
+          const gradId = "grad-" + Math.random().toString(36).slice(2);
+          const defsL = svg.append("defs");
+          const grad = defsL.append("linearGradient").attr("id", gradId).attr("x1","0%").attr("x2","100%");
+          const n = 256; const domain = color.domain();
+          for (let i=0;i<n;i++){
+            const p=i/(n-1);
+            grad.append("stop").attr("offset", `${100*p}%`)
+                .attr("stop-color", color(domain[0] + p*(domain[1]-domain[0])));
+          }
+          legend.append("rect").attr("width", width).attr("height", 12).attr("fill", `url(#${gradId})`).attr("rx",4).attr("ry",4);
+          const axis = d3.axisBottom(d3.scaleLinear().domain(color.domain()).range([0,width])).ticks(ticks).tickFormat(d3.format(".2s"));
+          legend.append("g").attr("transform", `translate(0,16)`).attr("class", "axis").call(axis)
+            .selectAll("text")
+            .style("fill", "#4A5D4A");
+          legend.append("text").attr("y",-6).attr("font-weight",600)
+            .style("fill", "#2E7D32")
+            .style("font-size", "12px")
+            .text(title);
+        }
+      })();
+    })();
+
+    // ========== New Charts Script ==========
+    // Morandi Green color scheme
+    const morandiGreens = ['#E8F5E9', '#C8E6C9', '#A5D6A7', '#81C784', '#66BB6A', '#4CAF50', '#388E3C', '#2E7D32'];
+    const interpolateMorandi = (t) => {
+      const colors = morandiGreens;
+      const i = Math.floor(t * (colors.length - 1));
+      const f = (t * (colors.length - 1)) - i;
+      return d3.interpolateRgb(colors[i], colors[Math.min(i + 1, colors.length - 1)])(f);
+    };
+    const morandiPalette = (n) => {
+      const colors = morandiGreens;
+      return d3.range(n).map(i => {
+        const idx = Math.floor((i / (n - 1)) * (colors.length - 1));
+        return colors[Math.min(idx, colors.length - 1)];
+      });
+    };
+    const colorScale = d3.scaleSequential(interpolateMorandi);
+
+    // Format helpers
+    const fmtNum = d3.format(",");
+    const fmt1 = d3.format(",.1f");
+    const fmt0 = d3.format(",.0f");
+
+    // Tooltip
+    const tooltip = d3.select("#tooltip");
+
+    function showTooltip(html, x, y) {
+      tooltip
+        .html(html)
+        .style("opacity", 1)
+        .style("left", (x + 12) + "px")
+        .style("top", (y + 12) + "px");
+    }
+
+    function hideTooltip() {
+      tooltip.style("opacity", 0);
+    }
+
+    // Load data and render charts
+    (async function() {
+      try {
+        const data = await d3.csv("src/pa_metrics.csv", d => ({
+          pa: d.pa,
+          population: +d.population,
+          area_km2: +d.area_km2,
+          green_area_km2: +d.green_area_km2,
+          green_per_capita_m2: +d.green_per_capita_m2,
+          pop_density_per_km2: +d.pop_density_per_km2
+        }));
+
+        // Filter out zero values and invalid data
+        const validData = data.filter(d => 
+          d.green_area_km2 > 0 && 
+          d.population > 0 && 
+          isFinite(d.green_area_km2)
+        );
+
+        renderGreenAreaHistogram(validData);
+
+      } catch (error) {
+        console.error("Error loading data:", error);
+      }
+    })();
+
+    // 2. Green Area Distribution - Vertical Bar Chart showing top 10 planning areas
+    function renderGreenAreaHistogram(data) {
+      const svg = d3.select("#green-area-histogram");
+      svg.selectAll("*").remove();
+
+      const margin = { top: 20, right: 20, bottom: 80, left: 50 };
+      const container = svg.node().parentElement;
+      const width = container.clientWidth - margin.left - margin.right;
+      const height = container.clientHeight - margin.top - margin.bottom - 40;
+
+      svg.attr("width", container.clientWidth)
+         .attr("height", container.clientHeight);
+
+      const g = svg.append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      // Sort data by green area and take top 10
+      const sortedData = data
+        .sort((a, b) => d3.descending(a.green_area_km2, b.green_area_km2))
+        .slice(0, 10); // Top 10 planning areas by green area
+
+      // Vertical bar chart: x for categories, y for values
+      const x = d3.scaleBand()
+        .domain(sortedData.map(d => d.pa))
+        .range([0, width])
+        .padding(0.2);
+
+      const y = d3.scaleLinear()
+        .domain([0, d3.max(sortedData, d => d.green_area_km2)])
+        .nice()
+        .range([height, 0]);
+
+      // Color scale based on green area (Morandi Green)
+      const colorBar = d3.scaleSequential(interpolateMorandi)
+        .domain([d3.min(sortedData, d => d.green_area_km2), d3.max(sortedData, d => d.green_area_km2)]);
+
+      // Bars (vertical)
+      g.selectAll("rect")
+        .data(sortedData)
+        .join("rect")
+        .attr("x", d => x(d.pa))
+        .attr("y", d => y(d.green_area_km2))
+        .attr("width", x.bandwidth())
+        .attr("height", d => height - y(d.green_area_km2))
+        .attr("fill", d => colorBar(d.green_area_km2))
+        .attr("stroke", "#fff")
+        .attr("stroke-width", 0.5)
+        .on("mousemove", (ev, d) => {
+          showTooltip(
+            `<strong>${d.pa}</strong><br/>` +
+            `Green Area: ${fmt1(d.green_area_km2)} km²<br/>` +
+            `Population: ${fmtNum(d.population)}<br/>` +
+            `Coverage: ${fmt1((d.green_area_km2 / d.area_km2) * 100)}%`,
+            ev.pageX,
+            ev.pageY
+          );
+        })
+        .on("mouseleave", hideTooltip);
+
+      // Axes
+      g.append("g")
+        .attr("transform", `translate(0,${height})`)
+        .attr("class", "axis")
+        .call(d3.axisBottom(x))
+        .selectAll("text")
+        .style("font-size", "9px")
+        .style("fill", "#4A5D4A")
+        .attr("transform", "rotate(-45)")
+        .attr("text-anchor", "end")
+        .attr("dx", "-0.5em")
+        .attr("dy", "1em");
+
+      g.append("g")
+        .attr("class", "axis")
+        .call(d3.axisLeft(y).ticks(5).tickFormat(d3.format(".1f")))
+        .selectAll("text")
+        .style("font-size", "10px")
+        .style("fill", "#4A5D4A");
+
+      // Y-axis label
+      g.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("x", -height / 2)
+        .attr("y", -35)
+        .attr("text-anchor", "middle")
+        .style("font-size", "11px")
+        .style("fill", "#4A5D4A")
+        .style("font-weight", "500")
+        .text("Green Area (km²)");
+    }
+
+  </script>
 </body>
 
 </html>
