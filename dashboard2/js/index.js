@@ -25,7 +25,7 @@ export function initDashboard2({ containerId, dataFolderUrl }) {
     ////////////////////////////////////////////////////////////
     let highlightedId = null;
 
-    const dashboardTitle = "Green Space Checklist";
+    const dashboardTitle = "\"The Resource\": Our Green Space Checklist";
 
     const dataSources = [
       {

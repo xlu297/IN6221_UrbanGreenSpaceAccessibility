@@ -18,9 +18,10 @@
 
         body {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-            color: #e7e9ee;
+            color: #333;
             margin: 0;
             padding: 0;
+            background: #f5f5f5;
         }
 
         .header-container {
@@ -87,14 +88,14 @@
         .chart-container {
             width: 100%;
             height: 600px;
-            border: 1px solid #202635;
+            border: 1px solid #e0e0e0;
             border-radius: 8px;
             padding: 15px;
-            background: #1a1d24;
+            background: #ffffff;
         }
 
         .chart-container h2 {
-            color: #e7e9ee;
+            color: #333;
             font-size: 18px;
             margin-bottom: 10px;
             text-align: center;
@@ -139,18 +140,18 @@
         }
 
         .axis text {
-            fill: #d1d5db;
+            fill: #666;
             font-size: 11px;
         }
 
         .axis line,
         .axis path {
-            stroke: #4b5563;
+            stroke: #999;
             stroke-width: 1px;
         }
 
         .dot {
-            stroke: #1a1d24;
+            stroke: #ffffff;
             stroke-width: 1px;
             transition: r 0.2s, stroke-width 0.2s;
         }
@@ -162,7 +163,7 @@
         }
 
         .region {
-            stroke: #374151;
+            stroke: #ccc;
             stroke-width: 0.5;
         }
 
@@ -370,25 +371,27 @@
                 .attr('class', 'grid')
                 .attr('transform', `translate(0,${height})`)
                 .call(d3.axisBottom(x).tickSize(-height).tickFormat('').tickArguments([10]))
-                .attr('opacity', 0.1);
+                .attr('opacity', 0.2)
+                .attr('stroke', '#ccc');
 
             g.append('g')
                 .attr('class', 'grid')
                 .call(d3.axisLeft(y).tickSize(-width).tickFormat('').tickArguments([10]))
-                .attr('opacity', 0.1);
+                .attr('opacity', 0.2)
+                .attr('stroke', '#ccc');
 
             // Axes
             g.append('g')
                 .attr('transform', `translate(0,${height})`)
                 .call(d3.axisBottom(x).tickFormat(d => d3.format(',.0f')(d)))
                 .selectAll('text')
-                .attr('fill', '#d1d5db')
+                .attr('fill', '#666')
                 .attr('font-size', '10px');
 
             g.append('g')
                 .call(d3.axisLeft(y).tickFormat(d => d3.format(',.1f')(d)))
                 .selectAll('text')
-                .attr('fill', '#d1d5db')
+                .attr('fill', '#666')
                 .attr('font-size', '10px');
 
             // Labels
@@ -396,7 +399,7 @@
                 .attr('x', width / 2)
                 .attr('y', height + 50)
                 .attr('text-anchor', 'middle')
-                .attr('fill', '#e7e9ee')
+                .attr('fill', '#333')
                 .attr('font-size', '13px')
                 .attr('font-weight', 'bold')
                 .text('Population Density (persons/km²)');
@@ -406,7 +409,7 @@
                 .attr('x', -height / 2)
                 .attr('y', -55)
                 .attr('text-anchor', 'middle')
-                .attr('fill', '#e7e9ee')
+                .attr('fill', '#333')
                 .attr('font-size', '13px')
                 .attr('font-weight', 'bold')
                 .text('Per Capita Green Space (m²/person)');
@@ -420,7 +423,7 @@
                 .attr('cy', d => y(d.green_per_capita_m2))
                 .attr('r', 5)
                 .attr('fill', '#5dc16b')
-                .attr('stroke', '#1a1d24')
+                .attr('stroke', '#ffffff')
                 .attr('stroke-width', 1)
                 .attr('opacity', 0.7)
                 .on('mousemove', (ev, d) => {
@@ -481,20 +484,20 @@
                 .attr('transform', `translate(0,${height})`)
                 .call(d3.axisBottom(x).tickFormat(d => d3.format('+.1f')(d)))
                 .selectAll('text')
-                .attr('fill', '#d1d5db')
+                .attr('fill', '#666')
                 .attr('font-size', '10px');
 
             g.append('g')
                 .call(d3.axisLeft(y))
                 .selectAll('text')
-                .attr('fill', '#d1d5db')
+                .attr('fill', '#666')
                 .attr('font-size', '10px');
 
             g.append('text')
                 .attr('x', width / 2)
                 .attr('y', height + 40)
                 .attr('text-anchor', 'middle')
-                .attr('fill', '#e7e9ee')
+                .attr('fill', '#333')
                 .attr('font-size', '12px')
                 .text('Difference (m²/person)');
 
@@ -520,7 +523,7 @@
                 .attr('x', width / 2)
                 .attr('y', -10)
                 .attr('text-anchor', 'middle')
-                .attr('fill', '#e7e9ee')
+                .attr('fill', '#333')
                 .attr('font-size', '13px')
                 .text(`National Average: ${d3.format('.2f')(mean)} m²/person`);
 
@@ -539,7 +542,7 @@
             legend.append('text')
                 .attr('x', 25)
                 .attr('y', 12)
-                .attr('fill', '#d1d5db')
+                .attr('fill', '#666')
                 .attr('font-size', '12px')
                 .text('Above Average');
 
@@ -556,7 +559,7 @@
             legend.append('text')
                 .attr('x', 25)
                 .attr('y', 37)
-                .attr('fill', '#d1d5db')
+                .attr('fill', '#666')
                 .attr('font-size', '12px')
                 .text('Below Average');
         }
@@ -594,7 +597,7 @@
                     .attr('x', '50%')
                     .attr('y', '50%')
                     .attr('text-anchor', 'middle')
-                    .attr('fill', '#e7e9ee')
+                    .attr('fill', '#333')
                     .text(`Couldn't load data, matched: ${matchedCount}/${features.length}`);
                 return;
             }
@@ -613,16 +616,16 @@
                 .attr('fill', f => {
                     const name = selectPAName(f.properties);
                     const m = findMatchingData(name, paByName);
-                    return m && m.green_per_capita_m2 > 0.01 ? color(m.green_per_capita_m2) : '#ffffff';
+                    return m && m.green_per_capita_m2 > 0.01 ? color(m.green_per_capita_m2) : '#f0f0f0';
                 })
-                .attr('stroke', '#1a1d24')
+                .attr('stroke', '#ccc')
                 .attr('stroke-width', 0.5)
                 .attr('opacity', 0.9)
                 .on('mouseenter', function () {
                     d3.select(this).attr('stroke', '#5dc16b').attr('stroke-width', 2).attr('opacity', 1);
                 })
                 .on('mouseleave', function () {
-                    d3.select(this).attr('stroke', '#1a1d24').attr('stroke-width', 0.5).attr('opacity', 0.9);
+                    d3.select(this).attr('stroke', '#ccc').attr('stroke-width', 0.5).attr('opacity', 0.9);
                 })
                 .on('mousemove', (ev, f) => {
                     const name = selectPAName(f.properties);
@@ -657,7 +660,7 @@
             legend.append('text')
                 .attr('x', 0)
                 .attr('y', legendH + 16)
-                .attr('fill', '#d1d5db')
+                .attr('fill', '#666')
                 .attr('font-size', '11px')
                 .text(d3.format('.1f')(d3.min(values)));
 
@@ -665,7 +668,7 @@
                 .attr('x', legendW)
                 .attr('y', legendH + 16)
                 .attr('text-anchor', 'end')
-                .attr('fill', '#d1d5db')
+                .attr('fill', '#666')
                 .attr('font-size', '11px')
                 .text(d3.format('.1f')(d3.max(values)) + ' m²/person');
 
@@ -673,7 +676,7 @@
                 .attr('x', legendW / 2)
                 .attr('y', -8)
                 .attr('text-anchor', 'middle')
-                .attr('fill', '#e7e9ee')
+                .attr('fill', '#333')
                 .attr('font-size', '13px')
                 .attr('font-weight', 'bold')
                 .text('Per Capita Green Space (darker = more)');
