@@ -131,6 +131,7 @@
             padding: 15px;
             min-height: 0;
             box-sizing: border-box;
+            position: relative;
         }
         
         .fairness-chart-panel h3 {
@@ -145,6 +146,7 @@
         .fairness-chart-panel .chart-container {
             flex: 1;
             min-height: 0;
+            position: relative;
         }
 
         #map {
@@ -235,6 +237,7 @@
             display: flex;
             flex-direction: column;
             min-height: 0;
+            position: relative;
         }
         
         .eval-module:has(.chart-container) {
@@ -253,6 +256,8 @@
         .kpi-display {
             text-align: center;
             padding: 20px;
+            position: relative;
+            z-index: 1;
         }
 
         .kpi-value {
@@ -260,6 +265,8 @@
             font-weight: bold;
             color: var(--morandi-green-6);
             margin: 10px 0;
+            position: relative;
+            z-index: 2;
         }
 
         .kpi-label {
@@ -285,6 +292,46 @@
             display: block;
         }
 
+        .loading-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: var(--morandi-text-light);
+            font-size: 14px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* 对于KPI模块，加载指示器显示在KPI值上方 */
+        #coverage-module .loading-indicator {
+            top: 60%;
+            transform: translate(-50%, 0);
+        }
+
+        .loading-indicator.hidden {
+            display: none;
+        }
+
+        .loading-spinner-small {
+            border: 3px solid var(--morandi-green-2);
+            border-top: 3px solid var(--morandi-green-6);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+
+        .chart-container,
+        #map-container {
+            position: relative;
+        }
+
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -292,7 +339,7 @@
             width: 100%;
             height: 100%;
             background: rgba(255, 255, 255, 0.9);
-            display: flex;
+            display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
@@ -452,7 +499,7 @@
         </div>
 
         <div class="evaluation-panel">
-            <div class="eval-module">
+            <div class="eval-module" id="coverage-module">
                 <h3>SDG 11.7 Coverage</h3>
                 <div class="kpi-display">
                     <div class="kpi-value" id="coverage-kpi">0%</div>
@@ -469,7 +516,7 @@
 
     <div class="tooltip" id="tooltip"></div>
 
-    <div class="loading-overlay" id="loading-overlay">
+    <div class="loading-overlay hidden" id="loading-overlay">
         <div class="loading-spinner"></div>
         <div id="loading-text">Loading data...</div>
     </div>
@@ -544,26 +591,67 @@
             }
         }
 
+        // 在各个区域显示加载提示
+        function showLoadingInArea(containerId, message) {
+            const container = document.getElementById(containerId);
+            if (!container) {
+                console.warn(`Container ${containerId} not found for loading indicator`);
+                return null;
+            }
+            
+            // 检查是否已有加载提示
+            let indicator = container.querySelector('.loading-indicator');
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.className = 'loading-indicator';
+                indicator.innerHTML = `
+                    <div class="loading-spinner-small"></div>
+                    <div class="loading-text">${message}</div>
+                `;
+                // 确保容器有相对定位
+                if (getComputedStyle(container).position === 'static') {
+                    container.style.position = 'relative';
+                }
+                container.appendChild(indicator);
+                console.log(`Loading indicator added to ${containerId}`);
+            } else {
+                const textEl = indicator.querySelector('.loading-text');
+                if (textEl) textEl.textContent = message;
+                indicator.classList.remove('hidden');
+                console.log(`Loading indicator shown for ${containerId}`);
+            }
+            return indicator;
+        }
+
+        function hideLoadingInArea(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const indicator = container.querySelector('.loading-indicator');
+            if (indicator) {
+                indicator.classList.add('hidden');
+            }
+        }
+
         // 加载数据（异步）
         async function loadData() {
             try {
-                updateLoadingText("Loading geographic data...");
+                showLoadingInArea("map-container", "Loading geographic data...");
                 const rawGeo = await d3.json("src/sg_pa.geojson");
                 
-                updateLoadingText("Loading metrics data...");
+                showLoadingInArea("map-container", "Loading metrics data...");
                 const metrics = await d3.csv("src/pa_metrics.csv");
                 
-                updateLoadingText("Loading residential data...");
+                showLoadingInArea("map-container", "Loading residential data...");
                 const residential = await d3.csv("src/residential_distances.csv");
                 
-                updateLoadingText("Loading parks data...");
+                showLoadingInArea("map-container", "Loading parks data...");
                 const parks = await d3.json("src/Parks.geojson");
                 
-                updateLoadingText("Loading population data...");
+                showLoadingInArea("map-container", "Loading population data...");
                 const population = await d3.csv("src/population_by_pa.csv");
 
                 // Geometry correction using turf.rewind
-                updateLoadingText("Processing geographic data...");
+                showLoadingInArea("map-container", "Processing geographic data...");
                 geoData = turf.rewind(rawGeo, { reverse: true, mutate: true });
                 
                 // 分配数据
@@ -588,7 +676,7 @@
 
         // 计算短缺指数（异步版本，使用批量处理）
         async function calculateDeficitScores() {
-            updateLoadingText("Calculating deficit scores...");
+            showLoadingInArea("map-container", "Calculating deficit scores...");
             
             // 使用 requestIdleCallback 或 setTimeout 来分批处理，避免阻塞
             await new Promise(resolve => {
@@ -841,6 +929,8 @@
                 console.error("Map data not ready: geoData is empty");
                 return;
             }
+            
+            showLoadingInArea("map-container", "Initializing map...");
             
             if (!paDeficitData || paDeficitData.length === 0) {
                 console.warn("paDeficitData is empty, using raw geoData to render");
@@ -1168,6 +1258,9 @@
                     document.getElementById("park-area-input").focus();
                 }
             });
+            
+            // 隐藏地图加载提示
+            hideLoadingInArea("map-container");
         }
 
         // 显示工具提示
@@ -1229,7 +1322,8 @@
         async function updateEvaluation() {
             // 显示加载状态
             const kpiElement = document.getElementById("coverage-kpi");
-            kpiElement.textContent = "Calculating...";
+            // showLoadingInArea("coverage-module", "Calculating coverage..."); // Removed: no loading text for coverage
+            kpiElement.textContent = "Calculating..."; // Removed: only show loading indicator
 
             // 合并现有公园和临时公园
             const allParks = [...(parksData?.features || [])];
@@ -1368,6 +1462,9 @@
             // 更新KPI（带动画）
             const currentValue = parseFloat(kpiElement.textContent.replace("%", "").replace("Calculating...", "0")) || 0;
             animateValue(kpiElement, currentValue, coverage, 1000);
+            
+            // 隐藏KPI加载提示（已移除，不再需要）
+            // hideLoadingInArea("coverage-module");
 
             // 异步更新图表，避免阻塞
             updateFairnessChart().catch(e => console.error("Fairness chart update error:", e));
@@ -1393,6 +1490,11 @@
 
         // 更新公平性图表（优化版本）
         async function updateFairnessChart() {
+            showLoadingInArea("fairness-chart", "Calculating fairness data...");
+            
+            // 确保加载提示先显示
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            
             // 计算每个PA的人均绿地（包括新公园）
             const paGreenArea = new Map();
             const paPopulation = new Map();
@@ -1481,7 +1583,8 @@
 
             // 渲染图表
             const container = d3.select("#fairness-chart");
-            container.selectAll("*").remove();
+            // 移除SVG元素，但保留加载指示器
+            container.selectAll("svg").remove();
 
             // 使用容器的实际尺寸，确保充分利用空间
             const containerNode = container.node();
@@ -1560,10 +1663,15 @@
                 .style("text-anchor", "middle")
                 .style("font-size", "12px")
                 .text("Deviation from Mean (m²/person)");
+            
+            // 隐藏公平性图表加载提示
+            hideLoadingInArea("fairness-chart");
         }
 
         // 更新距离分布图表（异步优化版本）
         async function updateDistanceChart() {
+            showLoadingInArea("distance-chart", "Calculating distance distribution...");
+            
             // 合并所有公园
             const allParks = [...(parksData?.features || [])];
             tempParks.forEach(park => {
@@ -1703,6 +1811,9 @@
                 .style("text-anchor", "middle")
                 .style("font-size", "12px")
                 .text("Number of Residential Units");
+            
+            // 隐藏距离分布图表加载提示
+            hideLoadingInArea("distance-chart");
         }
 
         // 添加临时公园到地图
@@ -2026,10 +2137,11 @@
             }, 250);
         });
 
-        // 初始化（完全异步）
+        // 初始化（完全异步，不阻塞页面）
         (async function() {
             try {
-                showLoading();
+                // 不显示全屏加载覆盖层，让页面直接显示
+                // showLoading(); // 注释掉，不显示全屏加载
                 
                 // 等待DOM完全加载
                 if (document.readyState === 'loading') {
@@ -2038,20 +2150,26 @@
                     });
                 }
                 
-                // 加载数据
-                updateLoadingText("Loading data files...");
+                // 使用 requestIdleCallback 或 setTimeout 延迟加载，让页面先渲染
+                await new Promise(resolve => {
+                    if (window.requestIdleCallback) {
+                        requestIdleCallback(resolve, { timeout: 100 });
+                    } else {
+                        setTimeout(resolve, 100);
+                    }
+                });
+                
+                // 加载数据（后台异步）
+                console.log("Loading data files...");
                 const loaded = await loadData();
                 if (!loaded) {
-                    updateLoadingText("Error: Failed to load data files. Please check if the files exist.");
-                    setTimeout(() => {
-                        alert("Data loading failed. Please check if the data files exist.");
-                        hideLoading();
-                    }, 2000);
+                    console.error("Failed to load data files");
+                    alert("Data loading failed. Please check if the data files exist.");
                     return;
                 }
 
-                // 计算短缺指数（异步）
-                updateLoadingText("Calculating deficit scores...");
+                // 计算短缺指数（异步，后台进行）
+                console.log("Calculating deficit scores...");
                 await calculateDeficitScores();
                 
                 console.log("Preparing to initialize map...", {
@@ -2060,10 +2178,8 @@
                     parksData: !!parksData
                 });
 
-                // 初始化地图
-                updateLoadingText("Initializing map...");
+                // 初始化地图（使用 requestAnimationFrame 确保不阻塞）
                 await new Promise(resolve => {
-                    // 使用 requestAnimationFrame 确保DOM已准备好
                     requestAnimationFrame(() => {
                         try {
                             initMap();
@@ -2077,8 +2193,7 @@
                     });
                 });
 
-                // 更新评估面板（异步）
-                updateLoadingText("Updating evaluation panel...");
+                // 更新评估面板（异步，后台进行）
                 await new Promise(resolve => {
                     setTimeout(async () => {
                         try {
@@ -2091,17 +2206,11 @@
                     }, 100);
                 });
 
-                // 隐藏加载指示器
-                hideLoading();
                 console.log("Initialization complete");
                 
             } catch (e) {
                 console.error("Initialization error:", e);
-                updateLoadingText(`Error: ${e.message}`);
-                setTimeout(() => {
-                    alert("Initialization failed: " + e.message);
-                    hideLoading();
-                }, 2000);
+                alert("Initialization failed: " + e.message);
             }
         })();
     </script>
