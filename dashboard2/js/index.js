@@ -25,7 +25,7 @@ export function initDashboard2({ containerId, dataFolderUrl }) {
     ////////////////////////////////////////////////////////////
     let highlightedId = null;
 
-    const dashboardTitle = "Green Space Checklist";
+    const dashboardTitle = "\"Resource\": Our Green Space Checklist";
 
     const dataSources = [
       {
@@ -53,16 +53,18 @@ export function initDashboard2({ containerId, dataFolderUrl }) {
     const container = outerContainer.append("div").attr("class", "grid");
 
     const header = container.append("div").attr("class", "header");
-    header.append("h1").attr("class", "h1").text(dashboardTitle);
-    header
-      .append("input")
-      .attr("type", "search")
-      .attr("placeholder", "Search parks...")
-      .on("input", search);
 
     const parkLocationContainer = container
       .append("div")
       .attr("class", "park-locations card");
+    
+    // Add search box to map container
+    parkLocationContainer
+      .append("input")
+      .attr("type", "search")
+      .attr("class", "map-search-box")
+      .attr("placeholder", "Search parks...")
+      .on("input", search);
 
     const parkAreasContainer = container
       .append("div")

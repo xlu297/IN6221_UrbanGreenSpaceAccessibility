@@ -13,14 +13,14 @@ export function initParkAreasChart({ container, tooltip, parkAreaGeoData }) {
   const chartTitle = "Park Areas";
   const chartSubtitle = "Park area, m². Each dot represents a park";
 
-  const height = 320;
-  const marginTop = 24;
-  const marginRight = 8;
+  const height = 280;
+  const marginTop = 22;
+  const marginRight = 7;
   const marginBottom = 0;
-  const marginLeft = 8;
+  const marginLeft = 7;
 
-  const dotRadius = 6;
-  const dotFilledRadius = 5;
+  const dotRadius = 5.5;
+  const dotFilledRadius = 4.5;
 
   const xScale = d3
     .scaleLog()

@@ -16,13 +16,13 @@ export function initParkLocationsChart({
   const chartTitle = "Park Locations";
   const chartSubtitle = "Each dot represents a park";
 
-  const height = 400;
-  const marginTop = 4;
-  const marginRight = 4;
-  const marginBottom = 4;
-  const marginLeft = 4;
+  const height = 350;
+  const marginTop = 3;
+  const marginRight = 3;
+  const marginBottom = 3;
+  const marginLeft = 3;
 
-  const dotFilledRadius = 5;
+  const dotFilledRadius = 4.5;
 
   const projection = d3.geoMercator();
   const path = d3.geoPath(projection);

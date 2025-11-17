@@ -4,39 +4,2298 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard 5</title>
+    <title>Dashboard 5: Green Space Intervention Simulator</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
     <link rel="stylesheet" href="style.css">
+    <style>
+        :root {
+            --morandi-bg: #F5F7F0;
+            --morandi-card: #FFFFFF;
+            --morandi-green-1: #E8F5E9;
+            --morandi-green-2: #C8E6C9;
+            --morandi-green-3: #A5D6A7;
+            --morandi-green-4: #81C784;
+            --morandi-green-5: #66BB6A;
+            --morandi-green-6: #4CAF50;
+            --morandi-green-7: #43A047;
+            --morandi-green-dark: #2E7D32;
+            --morandi-text: #2C3E2D;
+            --morandi-text-light: #5A6B5C;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", sans-serif;
+            background: var(--morandi-bg);
+            color: var(--morandi-text);
+        }
+
+        .header-container {
+            background-color: #333;
+            text-align: center;
+            margin-bottom: 0;
+        }
+
+        .header-container h1 {
+            color: white;
+            margin: 0;
+            font-size: 40px;
+            padding: 27px 0;
+        }
+
+        .header-container nav {
+            display: flex;
+            justify-content: center;
+        }
+
+        .header-container nav a {
+            display: block;
+            color: #f2f2f2;
+            text-align: center;
+            padding: 12px 20px;
+            text-decoration: none;
+            border: 1px solid #ccc;
+            margin: 0 5px;
+            border-radius: 5px;
+            background-color: #555;
+            transition: 0.3s;
+        }
+
+        .header-container nav a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+
+        .header-container nav a.active {
+            background-color: #04AA6D;
+            color: white;
+        }
+
+        .main-container {
+            display: flex;
+            height: calc(100vh - 120px);
+            gap: 20px;
+            padding: 0 20px 20px 20px;
+        }
+
+        .left-panel {
+            flex: 0 0 70%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-height: 0;
+        }
+
+        .map-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--morandi-card);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            min-height: 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .map-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--morandi-green-2);
+            background: var(--morandi-green-1);
+        }
+
+        .map-header h2 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--morandi-text);
+        }
+
+        #map-container {
+            flex: 1;
+            position: relative;
+            min-height: 500px;
+            background-color: #d8eded; /* Map ocean background color */
+        }
+        
+        .fairness-chart-panel {
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--morandi-card);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            min-height: 0;
+            box-sizing: border-box;
+            position: relative;
+        }
+        
+        .fairness-chart-panel h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: var(--morandi-text);
+            border-bottom: 2px solid var(--morandi-green-3);
+            padding-bottom: 8px;
+            flex-shrink: 0;
+        }
+        
+        .fairness-chart-panel .chart-container {
+            flex: 1;
+            min-height: 0;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Map style similar to Dashboard 2 */
+        #map .bg-rect {
+            fill: #d8eded; /* Ocean background color */
+        }
+
+        #map .planning-area-path {
+            /* fill is set dynamically by JavaScript, not here */
+            stroke: #e0e0e0; /* Light grey border */
+            stroke-width: 1.5px;
+            vector-effect: non-scaling-stroke;
+        }
+
+        #map .park-marker {
+            fill: #01b074; /* Park marker color */
+            stroke: #fff; /* White border */
+            stroke-width: 2px;
+            paint-order: stroke;
+            vector-effect: non-scaling-stroke;
+        }
+
+        #map .park-marker.existing-park {
+            r: 5; /* Park marker radius */
+        }
+
+        #map .park-marker.temp {
+            fill: #fbd031; /* Temporary parks use bright yellow */
+            stroke: #2a3940; /* Dark border */
+            stroke-width: 4px;
+        }
+
+        /* Legend style */
+        #map .deficit-legend {
+            pointer-events: none;
+        }
+
+        #map .deficit-legend rect {
+            pointer-events: none;
+        }
+
+        #map .deficit-legend text {
+            pointer-events: none;
+        }
+
+        #controls {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: var(--morandi-card);
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        #controls button {
+            padding: 8px 16px;
+            border: 1px solid var(--morandi-green-4);
+            background: var(--morandi-green-2);
+            color: var(--morandi-text);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        #controls button:hover {
+            background: var(--morandi-green-4);
+            color: white;
+        }
+
+        #controls button.active {
+            background: var(--morandi-green-6);
+            color: white;
+            border-color: var(--morandi-green-7);
+        }
+
+        .evaluation-panel {
+            flex: 0 0 30%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .eval-module {
+            background: var(--morandi-card);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            position: relative;
+        }
+        
+        .eval-module:has(.chart-container) {
+            padding: 10px;
+        }
+
+        .eval-module h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: var(--morandi-text);
+            border-bottom: 2px solid var(--morandi-green-3);
+            padding-bottom: 8px;
+            flex-shrink: 0;
+        }
+
+        .kpi-display {
+            text-align: center;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .kpi-value {
+            font-size: 48px;
+            font-weight: bold;
+            color: var(--morandi-green-6);
+            margin: 10px 0;
+            position: relative;
+            z-index: 2;
+        }
+
+        .kpi-label {
+            font-size: 14px;
+            color: var(--morandi-text-light);
+            margin-top: 5px;
+        }
+
+        .chart-container {
+            width: 100%;
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .chart-container svg {
+            flex: 1;
+            min-height: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .loading-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: var(--morandi-text-light);
+            font-size: 14px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* For KPI modules, the loading indicator is displayed above the KPI value */
+        #coverage-module .loading-indicator {
+            top: 60%;
+            transform: translate(-50%, 0);
+        }
+
+        .loading-indicator.hidden {
+            display: none;
+        }
+
+        .loading-spinner-small {
+            border: 3px solid var(--morandi-green-2);
+            border-top: 3px solid var(--morandi-green-6);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+
+        .chart-container,
+        #map-container {
+            position: relative;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            font-size: 18px;
+            color: var(--morandi-text);
+        }
+
+        .loading-spinner {
+            border: 4px solid var(--morandi-green-2);
+            border-top: 4px solid var(--morandi-green-6);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-overlay.hidden {
+            display: none;
+        }
+
+        .tooltip {
+            position: absolute;
+            pointer-events: none;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            line-height: 1.5;
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .tooltip.visible {
+            opacity: 1;
+        }
+
+        .park-marker {
+            fill: var(--morandi-green-6);
+            stroke: white;
+            stroke-width: 2;
+            cursor: pointer;
+        }
+
+        .park-marker:hover {
+            fill: var(--morandi-green-7);
+        }
+
+        .park-marker.temp {
+            fill: var(--morandi-green-4);
+            stroke: var(--morandi-green-6);
+            stroke-width: 3;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .input-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--morandi-card);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 3000;
+            display: none;
+        }
+
+        .input-dialog.visible {
+            display: block;
+        }
+
+        .input-dialog h4 {
+            margin: 0 0 15px 0;
+            color: var(--morandi-text);
+        }
+
+        .input-dialog input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--morandi-green-3);
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .input-dialog .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .input-dialog button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .input-dialog button.confirm {
+            background: var(--morandi-green-6);
+            color: white;
+        }
+
+        .input-dialog button.cancel {
+            background: var(--morandi-green-2);
+            color: var(--morandi-text);
+        }
+
+        .chart-container .subtitle {
+            flex-shrink: 0;
+            font-size: 0.28rem;
+            line-height: 1.05;
+            color: #666;
+            margin-bottom: 5px;
+            margin-top: 0;
+        }
+        
+        .chart-container:nth-child(2) .subtitle {
+            font-size: 0.45rem;
+            margin-bottom: 3px;
+        }
+    </style>
 </head>
 
 <body>
     <div class="header-container">
-        <h1>Urban Green Space Accessibility</h1>
+        <h1>"The Future": Policy Simulation</h1>
         <nav>
-            <a href="dashboard1.html">Dashboard 1</a>
-            <a href="dashboard2.html">Dashboard 2</a>
-            <a href="dashboard3.html">Dashboard 3</a>
-            <a href="dashboard4.html">Dashboard 4</a>
-            <a href="dashboard5.html" class="active">Dashboard 5</a>
+            <a href="dashboard1.html">The Pressure</a>
+            <a href="dashboard2.html">The Resource</a>
+            <a href="dashboard3.html">The Gap</a>
+            <a href="dashboard4.html">The Method</a>
+            <a href="dashboard5.html" class="active">The Future</a>
         </nav>
     </div>
 
-    <div class="container">
-        <h2>Dashboard 5</h2>
-        <div id="chart1" class="chart"></div>
+    <div class="main-container">
+        <div class="left-panel">
+            <div class="map-panel">
+                <div class="map-header">
+                    <h2>Green Space Deficit Hotspot Map</h2>
+                    <!-- <p class="subtitle">Map visualizing green space deficit. Darker areas are priority intervention zones</p> -->
+                </div>
+                <div id="map-container">
+                    <svg id="map"></svg>
+                    <div id="controls">
+                        <button id="add-park-btn">Add New Park</button>
+                        <button id="reset-btn">Reset Simulation</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="fairness-chart-panel">
+                <h3>Per Capita Green Space Equity Dynamic Analysis</h3>
+                <div class="chart-container" id="fairness-chart"></div>
+            </div>
+        </div>
+
+        <div class="evaluation-panel">
+            <div class="eval-module" id="coverage-module">
+                <h3>SDG 11.7 Coverage Dynamic Analysis</h3>
+                <div class="kpi-display">
+                    <div class="kpi-value" id="coverage-kpi">0%</div>
+                    <div class="kpi-label">Residential units within 400m</div>
+                </div>
+            </div>
+
+            <div class="eval-module" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                <h3>Distance Distribution Dynamic Analysis</h3>
+                <div class="chart-container" id="distance-chart"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <div class="loading-overlay hidden" id="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div id="loading-text">Loading data...</div>
+    </div>
+
+    <div class="input-dialog" id="park-input-dialog">
+        <h4>Add New Park</h4>
+        <input type="number" id="park-area-input" placeholder="Enter park area (square meters)" min="0" step="100">
+        <div class="button-group">
+            <button class="cancel" id="cancel-park-btn">Cancel</button>
+            <button class="confirm" id="confirm-park-btn">Confirm</button>
+        </div>
     </div>
 
     <script>
-        const svg = d3.select("#chart1")
-            .append("svg")
-            .attr("width", "100%")
-            .attr("height", "100%");
+        // Global state
+        let geoData = null;
+        let metricsData = null;
+        let residentialData = null;
+        let parksData = null;
+        let populationData = null;
+        let paDeficitData = null;
+        let tempParks = [];
+        let isAddingPark = false;
+        let pendingParkLocation = null;
 
-        svg.append("text")
-            .attr("x", 50)
-            .attr("y", 50)
-            .text("Dashboard 5 Visualization")
-            .style("font-size", "24px");
+        // D3 utilities
+        const tooltip = d3.select("#tooltip");
+        let projection = null;
+        let path = null;
+        let mapSvg = null;
+
+        // Extract planning area name
+        function extractPAName(feature) {
+            if (feature.properties.PLN_AREA_N) {
+                return feature.properties.PLN_AREA_N.trim();
+            }
+            if (feature.properties.Description) {
+                const match = feature.properties.Description.match(/<th>PLN_AREA_N<\/th>\s*<td>([^<]+)<\/td>/i);
+                if (match && match[1]) {
+                    return match[1].trim();
+                }
+            }
+            return null;
+        }
+
+        // Normalization function
+        function normalize(value, min, max) {
+            if (max === min) return 0;
+            return (value - min) / (max - min);
+        }
+
+        // Update loading text
+        function updateLoadingText(text) {
+            const loadingText = document.getElementById("loading-text");
+            if (loadingText) {
+                loadingText.textContent = text;
+            }
+        }
+
+        // Show/hide loading indicator
+        function showLoading() {
+            const overlay = document.getElementById("loading-overlay");
+            if (overlay) {
+                overlay.classList.remove("hidden");
+            }
+        }
+
+        function hideLoading() {
+            const overlay = document.getElementById("loading-overlay");
+            if (overlay) {
+                overlay.classList.add("hidden");
+            }
+        }
+
+        // Show loading indicator in specific areas
+        function showLoadingInArea(containerId, message) {
+            const container = document.getElementById(containerId);
+            if (!container) {
+                console.warn(`Container ${containerId} not found for loading indicator`);
+                return null;
+            }
+            
+            // Check if a loading indicator already exists
+            let indicator = container.querySelector('.loading-indicator');
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.className = 'loading-indicator';
+                indicator.innerHTML = `
+                    <div class="loading-spinner-small"></div>
+                    <div class="loading-text">${message}</div>
+                `;
+                // Ensure the container has relative positioning
+                if (getComputedStyle(container).position === 'static') {
+                    container.style.position = 'relative';
+                }
+                container.appendChild(indicator);
+                console.log(`Loading indicator added to ${containerId}`);
+            } else {
+                const textEl = indicator.querySelector('.loading-text');
+                if (textEl) textEl.textContent = message;
+                indicator.classList.remove('hidden');
+                console.log(`Loading indicator shown for ${containerId}`);
+            }
+            return indicator;
+        }
+
+        function hideLoadingInArea(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const indicator = container.querySelector('.loading-indicator');
+            if (indicator) {
+                indicator.classList.add('hidden');
+            }
+        }
+
+        // Load data (asynchronously)
+        async function loadData() {
+            try {
+                showLoadingInArea("map-container", "Loading geographic data...");
+                const rawGeo = await d3.json("src/sg_pa.geojson");
+                
+                showLoadingInArea("map-container", "Loading metrics data...");
+                const metrics = await d3.csv("src/pa_metrics.csv");
+                
+                showLoadingInArea("map-container", "Loading residential data...");
+                const residential = await d3.csv("src/residential_distances.csv");
+                
+                showLoadingInArea("map-container", "Loading parks data...");
+                const parks = await d3.json("src/Parks.geojson");
+                
+                showLoadingInArea("map-container", "Loading population data...");
+                const population = await d3.csv("src/population_by_pa.csv");
+
+                // Geometry correction using turf.rewind
+                showLoadingInArea("map-container", "Processing geographic data...");
+                geoData = turf.rewind(rawGeo, { reverse: true, mutate: true });
+                
+                // Assign data
+                metricsData = metrics;
+                residentialData = residential;
+                parksData = parks;
+                populationData = population;
+
+                console.log("Data loading complete", {
+                    geoFeatures: geoData.features.length,
+                    metrics: metricsData.length,
+                    residential: residentialData.length,
+                    parks: parksData?.features?.length || 0
+                });
+                return true;
+            } catch (error) {
+                console.error("Data loading failed:", error);
+                updateLoadingText(`Error: ${error.message}`);
+                return false;
+            }
+        }
+
+        // Calculate deficit scores (asynchronous version with batch processing)
+        async function calculateDeficitScores() {
+            showLoadingInArea("map-container", "Calculating deficit scores...");
+            
+            // Use requestIdleCallback or setTimeout for batch processing to avoid blocking
+            await new Promise(resolve => {
+                if (window.requestIdleCallback) {
+                    requestIdleCallback(() => resolve(), { timeout: 1000 });
+                } else {
+                    setTimeout(() => resolve(), 0);
+                }
+            });
+            // Process planning area name mapping
+            const paNameMap = new Map();
+            geoData.features.forEach(f => {
+                const name = extractPAName(f);
+                if (name) {
+                    paNameMap.set(name.toUpperCase().trim(), f);
+                }
+            });
+
+            // Process metrics data
+            const metricsMap = new Map();
+            metricsData.forEach(d => {
+                const key = d.pa.toUpperCase().trim();
+                metricsMap.set(key, {
+                    pa: d.pa,
+                    population: +d.population,
+                    green_area_km2: +d.green_area_km2,
+                    green_per_capita_m2: +d.green_per_capita_m2
+                });
+            });
+
+            // Aggregate residential data to calculate the average distance for each PA
+            // First, create a mapping from PA name to feature (for geographic matching)
+            const paFeatureMap = new Map();
+            geoData.features.forEach(f => {
+                const name = extractPAName(f);
+                if (name) {
+                    const key = name.toUpperCase().trim();
+                    paFeatureMap.set(key, f);
+                }
+            });
+
+            const paDistances = new Map();
+            let unknownCount = 0;
+            let validCount = 0;
+            let geoMatchedCount = 0;
+            
+            residentialData.forEach(d => {
+                let pa = d.planning_area && d.planning_area !== "Unknown" 
+                    ? d.planning_area.toUpperCase().trim() 
+                    : null;
+                
+                // If planning_area is "Unknown", try to match by geographic coordinates
+                if (!pa || !paFeatureMap.has(pa)) {
+                    const lon = +d.centroid_lon;
+                    const lat = +d.centroid_lat;
+                    if (!isNaN(lon) && !isNaN(lat)) {
+                        const point = turf.point([lon, lat]);
+                        // Find the planning area that contains the point
+                        for (const [key, feature] of paFeatureMap.entries()) {
+                            if (feature.geometry.type === "Polygon") {
+                                try {
+                                    const polygon = turf.polygon(feature.geometry.coordinates);
+                                    if (turf.booleanPointInPolygon(point, polygon)) {
+                                        pa = key;
+                                        geoMatchedCount++;
+                                        break;
+                                    }
+                                } catch (e) {
+                                    // Ignore geometry errors
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                if (pa && paFeatureMap.has(pa)) {
+                    if (!paDistances.has(pa)) {
+                        paDistances.set(pa, []);
+                    }
+                    const dist = +d.distance_m;
+                    if (!isNaN(dist) && dist > 0) {
+                        paDistances.get(pa).push(dist);
+                        validCount++;
+                    }
+                } else {
+                    unknownCount++;
+                }
+            });
+
+            console.log("Residential data statistics:", {
+                total: residentialData.length,
+                valid: validCount,
+                unknown: unknownCount,
+                geoMatched: geoMatchedCount,
+                uniquePAs: paDistances.size
+            });
+
+            // Calculate the average distance for each PA
+            const paAvgDistances = new Map();
+            paDistances.forEach((distances, pa) => {
+                if (distances.length > 0) {
+                    const avg = d3.mean(distances);
+                    if (!isNaN(avg) && avg > 0) {
+                        paAvgDistances.set(pa, avg);
+                    }
+                }
+            });
+
+            console.log("PA average distance statistics:", {
+                totalPAs: paAvgDistances.size,
+                samplePAs: Array.from(paAvgDistances.entries()).slice(0, 5)
+            });
+
+            // Collect all valid values for normalization
+            const perCapitaValues = [];
+            const avgDistanceValues = [];
+            
+            // Only collect values for PAs that have both metrics and avgDistance
+            metricsMap.forEach((metrics, key) => {
+                const avgDist = paAvgDistances.get(key);
+                if (avgDist !== undefined && !isNaN(avgDist) && avgDist > 0) {
+                    const perCap = metrics.green_per_capita_m2;
+                    if (!isNaN(perCap) && perCap >= 0) {
+                        perCapitaValues.push(perCap);
+                        avgDistanceValues.push(avgDist);
+                    }
+                }
+            });
+
+            console.log("Data matching statistics:", {
+                metricsCount: metricsMap.size,
+                avgDistanceCount: paAvgDistances.size,
+                matchedCount: perCapitaValues.length,
+                metricsKeys: Array.from(metricsMap.keys()).slice(0, 10),
+                distanceKeys: Array.from(paAvgDistances.keys()).slice(0, 10)
+            });
+
+            // If there is no matching data, use all metrics data to calculate the range
+            let minPerCapita, maxPerCapita, minAvgDistance, maxAvgDistance;
+            
+            if (perCapitaValues.length === 0 || avgDistanceValues.length === 0) {
+                console.warn("No matched data, using all available data to calculate range");
+                
+                // Use all metrics data
+                const allPerCapita = Array.from(metricsMap.values())
+                    .map(d => d.green_per_capita_m2)
+                    .filter(v => !isNaN(v) && v >= 0);
+                minPerCapita = allPerCapita.length > 0 ? d3.min(allPerCapita) : 0;
+                maxPerCapita = allPerCapita.length > 0 ? d3.max(allPerCapita) : 1;
+                
+                // Use all avgDistance data
+                const allAvgDistances = Array.from(paAvgDistances.values())
+                    .filter(v => !isNaN(v) && v > 0);
+                minAvgDistance = allAvgDistances.length > 0 ? d3.min(allAvgDistances) : 0;
+                maxAvgDistance = allAvgDistances.length > 0 ? d3.max(allAvgDistances) : 1000;
+            } else {
+                minPerCapita = d3.min(perCapitaValues);
+                maxPerCapita = d3.max(perCapitaValues);
+                minAvgDistance = d3.min(avgDistanceValues);
+                maxAvgDistance = d3.max(avgDistanceValues);
+            }
+
+            console.log("Normalization range:", {
+                perCapita: { min: minPerCapita, max: maxPerCapita },
+                avgDistance: { min: minAvgDistance, max: maxAvgDistance }
+            });
+
+            // Calculate deficit score - create data for all planning areas
+            paDeficitData = [];
+            let matchedCount = 0;
+            
+            geoData.features.forEach(f => {
+                const name = extractPAName(f);
+                if (!name) {
+                    paDeficitData.push({
+                        feature: f,
+                        pa: "Unknown",
+                        deficitScore: null,
+                        greenPerCapita: 0,
+                        avgDistance: 0,
+                        population: 0,
+                        greenArea: 0
+                    });
+                    return;
+                }
+
+                const key = name.toUpperCase().trim();
+                const metrics = metricsMap.get(key);
+                const avgDistance = paAvgDistances.get(key);
+
+                // Only calculate the deficit score if both values exist
+                if (metrics && avgDistance !== undefined && !isNaN(avgDistance) && avgDistance > 0) {
+                    const normPerCapita = normalize(metrics.green_per_capita_m2, minPerCapita, maxPerCapita);
+                    const normAvgDistance = normalize(avgDistance, minAvgDistance, maxAvgDistance);
+
+                    // Ensure the normalized value is within a valid range
+                    const clampedNormPerCapita = Math.max(0, Math.min(1, normPerCapita));
+                    const clampedNormAvgDistance = Math.max(0, Math.min(1, normAvgDistance));
+
+                    // Deficit_Score = (1 - norm_per_capita_space) + norm_avg_distance
+                    const deficitScore = (1 - clampedNormPerCapita) + clampedNormAvgDistance;
+
+                    paDeficitData.push({
+                        feature: f,
+                        pa: name,
+                        deficitScore: deficitScore,
+                        greenPerCapita: metrics.green_per_capita_m2,
+                        avgDistance: avgDistance,
+                        population: metrics.population,
+                        greenArea: metrics.green_area_km2
+                    });
+                    matchedCount++;
+                } else {
+                    // Areas with incomplete data
+                    paDeficitData.push({
+                        feature: f,
+                        pa: name,
+                        deficitScore: null,
+                        greenPerCapita: metrics ? metrics.green_per_capita_m2 : 0,
+                        avgDistance: avgDistance || 0,
+                        population: metrics ? metrics.population : 0,
+                        greenArea: metrics ? metrics.green_area_km2 : 0
+                    });
+                }
+            });
+
+            // Sort by deficit score (excluding null values)
+            paDeficitData.sort((a, b) => {
+                if (a.deficitScore === null) return 1;
+                if (b.deficitScore === null) return -1;
+                return b.deficitScore - a.deficitScore;
+            });
+
+            // Output statistics
+            const validScores = paDeficitData.filter(d => d.deficitScore !== null).map(d => d.deficitScore);
+            console.log("Deficit score calculation complete", {
+                total: paDeficitData.length,
+                matched: matchedCount,
+                scoreRange: validScores.length > 0 ? {
+                    min: d3.min(validScores).toFixed(3),
+                    max: d3.max(validScores).toFixed(3),
+                    mean: d3.mean(validScores).toFixed(3)
+                } : "N/A"
+            });
+        }
+
+        // Initialize map
+        function initMap() {
+            if (!geoData) {
+                console.error("Map data not ready: geoData is empty");
+                return;
+            }
+            
+            showLoadingInArea("map-container", "Initializing map...");
+            
+            if (!paDeficitData || paDeficitData.length === 0) {
+                console.warn("paDeficitData is empty, using raw geoData to render");
+                // If paDeficitData is empty, use raw geoData directly
+                paDeficitData = geoData.features.map(f => ({
+                    feature: f,
+                    pa: extractPAName(f) || "Unknown",
+                    deficitScore: 0.5,
+                    greenPerCapita: 0,
+                    avgDistance: 0,
+                    population: 0,
+                    greenArea: 0
+                }));
+            }
+
+            const container = d3.select("#map-container");
+            const containerNode = container.node();
+            let width = containerNode.clientWidth;
+            let height = containerNode.clientHeight;
+
+            // If the container has no size yet, use default values
+            if (width === 0) width = 800;
+            if (height === 0) height = 600;
+
+            mapSvg = d3.select("#map");
+            
+            // Clear existing content (except for control buttons)
+            mapSvg.selectAll("*").remove();
+            
+            // Ensure SVG's width and height attributes match the container size
+            // Remove any existing viewBox and use fixed width/height
+            mapSvg.attr("width", width)
+                   .attr("height", height)
+                   .attr("viewBox", null); // Remove viewBox, use fixed size
+
+            // Add background rectangle (ocean)
+            mapSvg.append("rect")
+                .attr("class", "bg-rect")
+                .attr("width", width)
+                .attr("height", height);
+
+            // Create main group (for zoom transform)
+            const g = mapSvg.append("g").attr("class", "map-content");
+
+            // Use fitExtent to automatically fit the map to the container (consistent with dashboard2)
+            const margin = { top: 4, right: 4, bottom: 4, left: 4 };
+            projection = d3.geoMercator()
+                .fitExtent(
+                    [[margin.left, margin.top], [width - margin.right, height - margin.bottom]],
+                    geoData
+                );
+
+            path = d3.geoPath().projection(projection);
+
+            // Create zoom behavior
+            const zoom = d3.zoom()
+                .scaleExtent([0.5, 8]) // Limit zoom range: 0.5x to 8x
+                .on("zoom", function(event) {
+                    // Update the transform of the main group
+                    g.attr("transform", event.transform);
+                });
+
+            // Apply zoom behavior to the SVG
+            mapSvg.call(zoom);
+
+            // Calculate color scale (using low-saturation red)
+            const deficitScores = paDeficitData
+                .map(d => d.deficitScore)
+                .filter(v => v !== null && v !== undefined && !isNaN(v));
+            
+            if (deficitScores.length === 0) {
+                console.error("No valid deficit score data");
+                return;
+            }
+            
+            const minScore = d3.min(deficitScores);
+            const maxScore = d3.max(deficitScores);
+            const medianScore = d3.median(deficitScores);
+            const q25 = d3.quantile(deficitScores, 0.25);
+            const q75 = d3.quantile(deficitScores, 0.75);
+            
+            console.log("Deficit score statistics:", {
+                min: minScore.toFixed(3),
+                q25: q25.toFixed(3),
+                median: medianScore.toFixed(3),
+                q75: q75.toFixed(3),
+                max: maxScore.toFixed(3),
+                range: (maxScore - minScore).toFixed(3)
+            });
+            
+            // Create a low-saturation red interpolator (using a more distinct color range)
+            // Use quantile mapping for a more even color distribution to highlight differences
+            // Use 5% and 95% quantiles to exclude outliers, making differences in the middle values more apparent
+            const p5 = d3.quantile(deficitScores, 0.05);
+            const p95 = d3.quantile(deficitScores, 0.95);
+            
+            let colorDomain = [p5 || minScore, p95 || maxScore];
+            console.log("Color mapping domain:", {
+                original: [minScore.toFixed(3), maxScore.toFixed(3)],
+                quantile: [p5.toFixed(3), p95.toFixed(3)],
+                using: colorDomain.map(v => v.toFixed(3))
+            });
+            
+            // Use a low-saturation yellow to red color scale
+            const yellowToRed = d3.interpolateRgb("#fff9e6", "#d4a5a5"); // From low-saturation yellow to low-saturation red
+            const colorScale = d3.scaleSequential(yellowToRed)
+                .domain([minScore, maxScore])
+                .clamp(true);
+            
+            // Output some sample color values for debugging
+            const sampleScores = [minScore, q25, medianScore, q75, maxScore].filter(v => v !== null);
+            console.log("示例颜色映射:", sampleScores.map(score => ({
+                score: score.toFixed(3),
+                color: colorScale(score)
+            })));
+
+            // Draw planning areas (using dashboard2 style)
+            const planningAreaG = g.append("g").attr("class", "planning-areas-g");
+            
+            // Ensure dots-g is also within the map-content group
+            const dotsG = g.append("g").attr("class", "dots-g");
+            
+            const paths = planningAreaG.selectAll("path.planning-area-path")
+                .data(paDeficitData, d => {
+                    const name = extractPAName(d.feature);
+                    return name || d.pa || Math.random();
+                });
+
+            const pathsEnter = paths.enter()
+                .append("path")
+                .attr("class", "planning-area-path");
+
+            pathsEnter.merge(paths)
+                .attr("d", d => {
+                    try {
+                        const result = path(d.feature);
+                        if (!result || result === "M0,0") {
+                            console.warn("Path is empty", d.pa);
+                            return null;
+                        }
+                        return result;
+                    } catch (e) {
+                        console.error("Path rendering error", d.pa, e);
+                        return null;
+                    }
+                })
+                .style("fill", d => {
+                    // Use style instead of attr to set fill, ensuring priority
+                    if (d.deficitScore === null || d.deficitScore === undefined || isNaN(d.deficitScore)) {
+                        return "#f0f0f0"; // Gray for no data
+                    }
+                    const color = colorScale(d.deficitScore);
+                    // Debug: output the color of the first few areas
+                    if (paDeficitData.indexOf(d) < 3) {
+                        console.log(`Fill color - PA: ${d.pa}, Score: ${d.deficitScore.toFixed(3)}, Color: ${color}`);
+                    }
+                    return color;
+                })
+                .on("mouseover", function(event, d) {
+                    d3.select(this).attr("stroke-width", 3).attr("stroke", "#2a3940");
+                    showTooltip(event, d);
+                })
+                .on("mouseout", function(event, d) {
+                    d3.select(this).attr("stroke-width", 1.5).attr("stroke", "#e0e0e0");
+                    hideTooltip();
+                });
+
+            paths.exit().remove();
+
+            console.log("Map rendering complete", paDeficitData.length, "planning areas");
+
+            // Create gradient definition (must be created before the legend)
+            let defs = mapSvg.select("defs");
+            if (defs.empty()) {
+                defs = mapSvg.append("defs");
+            }
+            
+            // Remove old gradient if it exists
+            defs.selectAll("#deficit-gradient").remove();
+            
+            const gradient = defs.append("linearGradient")
+                .attr("id", "deficit-gradient")
+                .attr("x1", "0%")
+                .attr("x2", "100%")
+                .attr("y1", "0%")
+                .attr("y2", "0%");
+
+            // Add gradient stops
+            const numStops = 10;
+            for (let i = 0; i <= numStops; i++) {
+                const t = i / numStops;
+                const score = minScore + (maxScore - minScore) * t;
+                const color = colorScale(score);
+                gradient.append("stop")
+                    .attr("offset", `${t * 100}%`)
+                    .attr("stop-color", color);
+            }
+
+            // Draw existing parks (using dashboard2 style)
+            // dotsG has already been created above
+            if (parksData && parksData.features) {
+                dotsG.selectAll("circle.existing-park")
+                    .data(parksData.features, d => d.properties.NAME || d.properties.id || Math.random())
+                    .enter()
+                    .append("circle")
+                    .attr("class", "park-marker existing-park")
+                    .attr("r", 5) // radius from dashboard2
+                    .attr("transform", d => {
+                        const coords = projection(d.geometry.coordinates);
+                        return `translate(${coords[0]},${coords[1]})`;
+                    })
+                    .on("mouseover", function(event, d) {
+                        d3.select(this).attr("stroke-width", 4).attr("stroke", "#2a3940");
+                        showTooltip(event, {
+                            pa: d.properties.NAME || "Park",
+                            type: "park"
+                        });
+                    })
+                    .on("mouseout", function(event, d) {
+                        d3.select(this).attr("stroke-width", 2).attr("stroke", "#fff");
+                        hideTooltip();
+                    });
+            }
+
+            // Add legend (bottom right of the map) - add after all map content is drawn to ensure it's on top
+            // Note: Control buttons are in the top right, so the legend is placed in the bottom right
+            // Use the set width and height attribute values of the SVG to ensure correct legend positioning
+            // If the SVG has a viewBox, the coordinate system might be different, but here we use the set width/height directly
+            const svgWidth = parseFloat(mapSvg.attr("width")) || width;
+            const svgHeight = parseFloat(mapSvg.attr("height")) || height;
+            
+            const legendWidth = 133; // Scaled down by 1/3 (200 * 2/3)
+            const legendHeight = 93; // Scaled down by 1/3 (140 * 2/3)
+            // Calculate position using the actual SVG size to ensure the legend is within the visible area
+            const legendX = Math.max(10, svgWidth - legendWidth - 20); // Ensure it doesn't go off the left edge
+            const legendY = Math.max(10, svgHeight - legendHeight - 200); // Move it up by another 1/3 (150 + 50)
+
+            console.log("Creating legend at:", { 
+                legendX, legendY, 
+                containerWidth: width, containerHeight: height,
+                svgWidth, svgHeight,
+                legendWidth, legendHeight 
+            });
+
+            // Remove old legend if it exists
+            mapSvg.selectAll(".deficit-legend").remove();
+
+            const legendG = mapSvg.append("g")
+                .attr("class", "deficit-legend")
+                .attr("transform", `translate(${legendX}, ${legendY})`)
+                .style("pointer-events", "none"); // Prevent legend from interfering with map interaction
+
+            // Legend background
+            legendG.append("rect")
+                .attr("width", legendWidth)
+                .attr("height", legendHeight)
+                .attr("fill", "white")
+                .attr("fill-opacity", 0.95)
+                .attr("stroke", "#ccc")
+                .attr("stroke-width", 1.5)
+                .attr("rx", 4);
+
+            // Legend title
+            legendG.append("text")
+                .attr("x", legendWidth / 2)
+                .attr("y", 10)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "8px")
+                .attr("font-weight", "bold")
+                .attr("fill", "#333")
+                .text("Deficit Score");
+
+            // Draw gradient bar
+            const gradientBarWidth = legendWidth - 27;
+            const gradientBarHeight = 13;
+            const gradientBarX = 13;
+            const gradientBarY = 20;
+
+            legendG.append("rect")
+                .attr("x", gradientBarX)
+                .attr("y", gradientBarY)
+                .attr("width", gradientBarWidth)
+                .attr("height", gradientBarHeight)
+                .attr("fill", "url(#deficit-gradient)")
+                .attr("stroke", "#999")
+                .attr("stroke-width", 0.5);
+
+            // Add min and max value labels
+            legendG.append("text")
+                .attr("x", gradientBarX)
+                .attr("y", gradientBarY + gradientBarHeight + 10)
+                .attr("font-size", "7px")
+                .attr("fill", "#666")
+                .text(minScore.toFixed(3));
+
+            legendG.append("text")
+                .attr("x", gradientBarX + gradientBarWidth)
+                .attr("y", gradientBarY + gradientBarHeight + 10)
+                .attr("text-anchor", "end")
+                .attr("font-size", "7px")
+                .attr("fill", "#666")
+                .text(maxScore.toFixed(3));
+
+            // Add calculation formula explanation
+            legendG.append("text")
+                .attr("x", legendWidth / 2)
+                .attr("y", gradientBarY + gradientBarHeight + 23)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "6px")
+                .attr("fill", "#666")
+                .attr("font-style", "italic")
+                .text("Calculation:");
+
+            legendG.append("text")
+                .attr("x", legendWidth / 2)
+                .attr("y", gradientBarY + gradientBarHeight + 32)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "6px")
+                .attr("fill", "#666")
+                .text("(1 - NormPerCapita) +");
+
+            legendG.append("text")
+                .attr("x", legendWidth / 2)
+                .attr("y", gradientBarY + gradientBarHeight + 41)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "6px")
+                .attr("fill", "#666")
+                .text("NormAvgDistance");
+
+            legendG.append("text")
+                .attr("x", legendWidth / 2)
+                .attr("y", gradientBarY + gradientBarHeight + 50)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "5px")
+                .attr("fill", "#888")
+                .text("Higher = More Deficit");
+
+            // Add map click event (for adding new parks) - bind only once
+            // Note: Needs to be handled after zoom, considering the current transform
+            mapSvg.on("click.map-click", function(event) {
+                if (isAddingPark) {
+                    // Get the current transform
+                    const transform = d3.zoomTransform(mapSvg.node());
+                    // Convert click coordinates to un-zoomed/un-panned coordinates
+                    const [x, y] = d3.pointer(event, mapSvg.node());
+                    const coords = projection.invert([
+                        (x - transform.x) / transform.k,
+                        (y - transform.y) / transform.k
+                    ]);
+                    pendingParkLocation = coords;
+                    document.getElementById("park-input-dialog").classList.add("visible");
+                    document.getElementById("park-area-input").focus();
+                }
+            });
+            
+            // Hide map loading indicator
+            hideLoadingInArea("map-container");
+        }
+
+        // Show tooltip
+        function showTooltip(event, d) {
+            let html = "";
+            if (d.type === "park") {
+                html = `<strong>${d.pa}</strong><br/>Existing Park`;
+            } else if (d.type === "temp-park") {
+                html = `
+                    <strong>${d.pa}</strong><br/>
+                    Area: ${d.area.toLocaleString()} m²
+                `;
+            } else {
+                html = `
+                    <strong>${d.pa}</strong><br/>
+                    Deficit Score: ${d.deficitScore.toFixed(3)}<br/>
+                    Per Capita Green Space: ${d.greenPerCapita.toFixed(2)} m²<br/>
+                    Average Distance: ${d.avgDistance.toFixed(0)} m
+                `;
+            }
+
+            tooltip
+                .html(html)
+                .classed("visible", true)
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 10) + "px");
+        }
+
+        // Hide tooltip
+        function hideTooltip() {
+            tooltip.classed("visible", false);
+        }
+
+        // Batch processing utility function
+        async function processBatch(items, batchSize, processor) {
+            const results = [];
+            for (let i = 0; i < items.length; i += batchSize) {
+                const batch = items.slice(i, i + batchSize);
+                const batchResults = await processor(batch, i);
+                results.push(...batchResults);
+                // Yield control to avoid blocking the UI
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
+            return results;
+        }
+
+        // Debounce function
+        let updateEvaluationTimeout = null;
+        function debounceUpdateEvaluation() {
+            if (updateEvaluationTimeout) {
+                clearTimeout(updateEvaluationTimeout);
+            }
+            updateEvaluationTimeout = setTimeout(() => {
+                updateEvaluation();
+            }, 300);
+        }
+
+        // Update evaluation panel (asynchronously optimized version)
+        async function updateEvaluation() {
+            // Show loading state
+            const kpiElement = document.getElementById("coverage-kpi");
+            // showLoadingInArea("coverage-module", "Calculating coverage..."); // Removed: no loading text for coverage
+            kpiElement.textContent = "Calculating..."; // Removed: only show loading indicator
+
+            // Merge existing and temporary parks
+            const allParks = [...(parksData?.features || [])];
+            tempParks.forEach(park => {
+                allParks.push({
+                    type: "Feature",
+                    geometry: {
+                        type: "Point",
+                        coordinates: [park.lon, park.lat]
+                    },
+                    properties: {
+                        NAME: "New Park",
+                        area: park.area
+                    }
+                });
+            });
+
+            // Pre-process park coordinates to avoid repeatedly creating turf.point
+            const parkPoints = allParks
+                .filter(park => park.geometry && park.geometry.coordinates && park.geometry.coordinates.length >= 2)
+                .map(park => ({
+                    point: turf.point(park.geometry.coordinates),
+                    coords: park.geometry.coordinates
+                }));
+
+            // Calculate 400m coverage in batches
+            const BATCH_SIZE = 1000; // Process 1000 points per batch
+            let coveredCount = 0;
+            let totalCount = 0;
+
+            // Check if there is park data
+            if (parkPoints.length === 0) {
+                console.warn("No park data available for coverage calculation");
+                const coverage = 0;
+                const currentValue = parseFloat(kpiElement.textContent.replace("%", "").replace("Calculating...", "0")) || 0;
+                animateValue(kpiElement, currentValue, coverage, 1000);
+                return;
+            }
+
+            console.log(`Calculating coverage with ${parkPoints.length} parks (${parksData?.features?.length || 0} existing + ${tempParks.length} new)`);
+
+            // Calculate the number of residential points covered only by new parks (for debugging)
+            let newlyCoveredCount = 0;
+            let coveredByExistingOnly = 0;
+            let coveredByNewOnly = 0;
+            let coveredByBoth = 0;
+            let notCovered = 0;
+
+            // First, calculate coverage by existing parks only (for comparison)
+            const existingParkPoints = (parksData?.features || [])
+                .filter(park => park.geometry && park.geometry.coordinates && park.geometry.coordinates.length >= 2)
+                .map(park => turf.point(park.geometry.coordinates));
+
+            await processBatch(residentialData, BATCH_SIZE, async (batch) => {
+                batch.forEach(d => {
+                    const resLon = +d.centroid_lon;
+                    const resLat = +d.centroid_lat;
+                    
+                    // Only calculate for points with valid coordinates
+                    if (isNaN(resLon) || isNaN(resLat)) return;
+                    
+                    totalCount++; // Only increment count for valid coordinates
+                    const resPoint = turf.point([resLon, resLat]);
+
+                    // Check if covered by existing parks
+                    let coveredByExisting = false;
+                    for (const parkPoint of existingParkPoints) {
+                        const distance = turf.distance(resPoint, parkPoint, { units: "meters" });
+                        if (distance <= 400) {
+                            coveredByExisting = true;
+                            break;
+                        }
+                    }
+
+                    // Check if covered by new parks
+                    let coveredByNew = false;
+                    if (tempParks.length > 0) {
+                        for (const park of tempParks) {
+                            const parkPoint = turf.point([park.lon, park.lat]);
+                            const distance = turf.distance(resPoint, parkPoint, { units: "meters" });
+                            if (distance <= 400) {
+                                coveredByNew = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Tally coverage status
+                    if (coveredByExisting && coveredByNew) {
+                        coveredByBoth++;
+                    } else if (coveredByExisting) {
+                        coveredByExistingOnly++;
+                    } else if (coveredByNew) {
+                        coveredByNewOnly++;
+                        newlyCoveredCount++;
+                    } else {
+                        notCovered++;
+                    }
+
+                    // Use early exit optimization: stop once the first park within 400m is found
+                    for (const { point: parkPoint } of parkPoints) {
+                        const distance = turf.distance(resPoint, parkPoint, { units: "meters" });
+                        if (distance <= 400) {
+                            coveredCount++;
+                            break; // Exit once found to avoid redundant calculations
+                        }
+                    }
+                });
+                return [];
+            });
+
+            const coverage = totalCount > 0 ? (coveredCount / totalCount) * 100 : 0;
+            
+            console.log(`Coverage calculation: ${coveredCount}/${totalCount} = ${coverage.toFixed(5)}%`);
+            console.log(`Coverage breakdown:`, {
+                total: totalCount,
+                covered: coveredCount,
+                notCovered: notCovered,
+                coveredByExistingOnly: coveredByExistingOnly,
+                coveredByNewOnly: coveredByNewOnly,
+                coveredByBoth: coveredByBoth,
+                newlyCoveredByNewParks: newlyCoveredCount,
+                newParksCount: tempParks.length
+            });
+            
+            // If new parks were added, show details
+            if (tempParks.length > 0) {
+                console.log(`New parks added:`, tempParks.map(p => ({
+                    location: [p.lon, p.lat],
+                    area: p.area,
+                    area_km2: (p.area / 1000000).toFixed(2)
+                })));
+                console.log(`Newly covered residential units: ${newlyCoveredCount} (${(newlyCoveredCount / totalCount * 100).toFixed(5)}%)`);
+            }
+
+            // Update KPI (with animation)
+            const currentValue = parseFloat(kpiElement.textContent.replace("%", "").replace("Calculating...", "0")) || 0;
+            animateValue(kpiElement, currentValue, coverage, 1000);
+            
+            // Hide KPI loading indicator (removed, no longer needed)
+            // hideLoadingInArea("coverage-module");
+
+            // Asynchronously update charts to avoid blocking
+            updateFairnessChart().catch(e => console.error("Fairness chart update error:", e));
+            updateDistanceChart().catch(e => console.error("Distance chart update error:", e));
+        }
+
+        // Number animation
+        function animateValue(element, start, end, duration) {
+            const startTime = performance.now();
+            const update = (currentTime) => {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const current = start + (end - start) * progress;
+                element.textContent = current.toFixed(5) + "%";
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                } else {
+                    element.textContent = end.toFixed(5) + "%";
+                }
+            };
+            requestAnimationFrame(update);
+        }
+
+        // Update fairness chart (optimized version)
+        async function updateFairnessChart() {
+            showLoadingInArea("fairness-chart", "Calculating fairness data...");
+            
+            // Ensure the loading indicator is displayed first
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            
+            // Calculate per capita green space for each PA (including new parks)
+            const paGreenArea = new Map();
+            const paPopulation = new Map();
+
+            // Initialize
+            metricsData.forEach(d => {
+                const key = d.pa.toUpperCase().trim();
+                paGreenArea.set(key, +d.green_area_km2 * 1000000); // Convert to square meters
+                paPopulation.set(key, +d.population);
+            });
+
+            // Pre-process geoData to create PA polygon and centroid mappings
+            const paPolygons = new Map();
+            const paCentroids = new Map();
+            geoData.features.forEach(f => {
+                const paName = extractPAName(f);
+                if (!paName) return;
+                const key = paName.toUpperCase().trim();
+                if (f.geometry.type === "Polygon") {
+                    paPolygons.set(key, turf.polygon(f.geometry.coordinates));
+                }
+                paCentroids.set(key, turf.centroid(f));
+            });
+
+            // Add the area of new parks (optimized: use pre-processed polygons)
+            for (const park of tempParks) {
+                const parkPoint = turf.point([park.lon, park.lat]);
+                let nearestPA = null;
+                let minDist = Infinity;
+
+                // First, check if it's inside a polygon
+                for (const [key, polygon] of paPolygons.entries()) {
+                    if (turf.booleanPointInPolygon(parkPoint, polygon)) {
+                        if (paGreenArea.has(key)) {
+                            paGreenArea.set(key, paGreenArea.get(key) + park.area);
+                            nearestPA = key;
+                            break;
+                        }
+                    }
+                }
+
+                // If not inside any PA, find the nearest one
+                if (!nearestPA) {
+                    for (const [key, centroid] of paCentroids.entries()) {
+                        const dist = turf.distance(parkPoint, centroid);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            nearestPA = key;
+                        }
+                    }
+                    if (nearestPA && paGreenArea.has(nearestPA)) {
+                        paGreenArea.set(nearestPA, paGreenArea.get(nearestPA) + park.area);
+                    }
+                }
+
+                // Yield control
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
+
+            // Calculate per capita green space
+            const perCapitaData = [];
+            paGreenArea.forEach((area, pa) => {
+                const pop = paPopulation.get(pa) || 1;
+                const perCapita = area / pop;
+                perCapitaData.push({
+                    pa: pa,
+                    perCapita: perCapita,
+                    area: area,
+                    population: pop
+                });
+            });
+
+            // Calculate the average
+            const avgPerCapita = d3.mean(perCapitaData, d => d.perCapita);
+
+            // Calculate deviation
+            perCapitaData.forEach(d => {
+                d.deviation = d.perCapita - avgPerCapita;
+            });
+
+            // Sort and take the top 15 and bottom 15
+            perCapitaData.sort((a, b) => b.deviation - a.deviation);
+            const top15 = perCapitaData.slice(0, 15);
+            const bottom15 = perCapitaData.slice(-15).reverse();
+            const chartData = [...top15, ...bottom15];
+
+            // Render the chart
+            const container = d3.select("#fairness-chart");
+            // Remove SVG elements, but keep the loading indicator
+            container.selectAll("svg").remove();
+
+            // Use the actual size of the container to ensure full space utilization
+            const containerNode = container.node();
+            if (!containerNode) {
+                console.warn("Fairness chart container not found");
+                return;
+            }
+            
+            // Wait for DOM update to ensure correct container size
+            await new Promise(resolve => setTimeout(resolve, 50));
+            
+            const containerWidth = containerNode.clientWidth || 300;
+            const containerHeight = containerNode.clientHeight || 300;
+            
+            console.log("Fairness chart container size:", { containerWidth, containerHeight });
+            
+            const margin = { top: 20, right: 30, bottom: 60, left: 120 };
+            const width = Math.max(300, containerWidth - margin.left - margin.right);
+            const height = Math.max(300, containerHeight - margin.top - margin.bottom);
+
+            const svg = container.append("svg")
+            .attr("width", "100%")
+                .attr("height", "100%")
+                .attr("viewBox", `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`)
+                .attr("preserveAspectRatio", "xMidYMid meet");
+
+            const g = svg.append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            const x = d3.scaleLinear()
+                .domain(d3.extent(chartData, d => d.deviation))
+                .nice()
+                .range([0, width]);
+
+            const y = d3.scaleBand()
+                .domain(chartData.map(d => d.pa))
+                .range([0, height])
+                .padding(0.2);
+
+            // Add zero line
+            g.append("line")
+                .attr("x1", x(0))
+                .attr("x2", x(0))
+                .attr("y1", 0)
+                .attr("y2", height)
+                .attr("stroke", "#666")
+                .attr("stroke-width", 1)
+                .attr("stroke-dasharray", "3,3");
+
+            // Add bars
+            g.selectAll("rect")
+                .data(chartData)
+                .enter()
+                .append("rect")
+                .attr("x", d => d.deviation < 0 ? x(d.deviation) : x(0))
+                .attr("y", d => y(d.pa))
+                .attr("width", d => Math.abs(x(d.deviation) - x(0)))
+                .attr("height", y.bandwidth())
+                .attr("fill", d => d.deviation > 0 ? "#4CAF50" : "#FF9800")
+                .attr("opacity", 0.7);
+
+            // Add Y-axis
+            g.append("g")
+                .call(d3.axisLeft(y))
+                .selectAll("text")
+                .style("font-size", "10px");
+
+            // Add X-axis
+            g.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x))
+                .append("text")
+                .attr("x", width / 2)
+                .attr("y", 40)
+                .attr("fill", "currentColor")
+                .style("text-anchor", "middle")
+                .style("font-size", "12px")
+                .text("Deviation from Mean (m²/person)");
+            
+            // Hide fairness chart loading indicator
+            hideLoadingInArea("fairness-chart");
+        }
+
+        // Update distance distribution chart (asynchronously optimized version)
+        async function updateDistanceChart() {
+            showLoadingInArea("distance-chart", "Calculating distance distribution...");
+            
+            // Merge all parks
+            const allParks = [...(parksData?.features || [])];
+            tempParks.forEach(park => {
+                allParks.push({
+                    type: "Feature",
+                    geometry: {
+                        type: "Point",
+                        coordinates: [park.lon, park.lat]
+                    }
+                });
+            });
+
+            // Pre-process park coordinates
+            const parkPoints = allParks
+                .filter(park => park.geometry && park.geometry.coordinates && park.geometry.coordinates.length >= 2)
+                .map(park => turf.point(park.geometry.coordinates));
+
+            // Calculate distances in batches
+            const distances = [];
+            const BATCH_SIZE = 2000; // Process 2000 points per batch
+
+            const results = await processBatch(residentialData, BATCH_SIZE, async (batch) => {
+                const batchDistances = [];
+                batch.forEach(d => {
+                    const resLon = +d.centroid_lon;
+                    const resLat = +d.centroid_lat;
+                    if (isNaN(resLon) || isNaN(resLat)) return;
+                    
+                    const resPoint = turf.point([resLon, resLat]);
+
+                    let minDist = Infinity;
+                    for (const parkPoint of parkPoints) {
+                        const distance = turf.distance(resPoint, parkPoint, { units: "meters" });
+                        if (distance < minDist) {
+                            minDist = distance;
+                        }
+                    }
+
+                    if (minDist < Infinity) {
+                        batchDistances.push(minDist);
+                    }
+                });
+                return batchDistances;
+            });
+            
+            distances.push(...results.flat());
+
+            if (distances.length === 0) {
+                console.warn("No distance data");
+                return;
+            }
+
+            // Create histogram data
+            const bins = d3.bin().thresholds(20)(distances);
+            const maxCount = d3.max(bins, d => d.length);
+
+            // Render the chart
+            const container = d3.select("#distance-chart");
+            container.selectAll("*").remove();
+
+            // Use the actual size of the container to ensure full space utilization
+            const containerNode = container.node();
+            const containerWidth = containerNode ? containerNode.clientWidth : 300;
+            const containerHeight = containerNode ? containerNode.clientHeight : 300;
+            
+            const margin = { top: 20, right: 20, bottom: 50, left: 70 };
+            const width = Math.max(300, containerWidth - margin.left - margin.right);
+            const height = Math.max(300, containerHeight - margin.top - margin.bottom);
+
+            const svg = container.append("svg")
+                .attr("width", "100%")
+                .attr("height", "100%")
+                .attr("viewBox", `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`)
+                .attr("preserveAspectRatio", "xMidYMid meet");
+
+            const g = svg.append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            const x = d3.scaleLinear()
+                .domain([0, d3.max(bins, d => d.x1)])
+                .range([0, width]);
+
+            const y = d3.scaleLinear()
+                .domain([0, maxCount])
+                .range([height, 0]);
+
+            // Add bars
+            g.selectAll("rect")
+                .data(bins)
+                .enter()
+                .append("rect")
+                .attr("x", d => x(d.x0))
+                .attr("y", d => y(d.length))
+                .attr("width", d => x(d.x1) - x(d.x0) - 1)
+                .attr("height", d => height - y(d.length))
+                .attr("fill", "#4CAF50")
+                .attr("opacity", 0.7);
+
+            // Add 400m reference line
+            g.append("line")
+                .attr("x1", x(400))
+                .attr("x2", x(400))
+                .attr("y1", 0)
+                .attr("y2", height)
+                .attr("stroke", "#FF5722")
+                .attr("stroke-width", 2)
+                .attr("stroke-dasharray", "5,5");
+
+            g.append("text")
+                .attr("x", x(400))
+                .attr("y", -5)
+                .attr("fill", "#FF5722")
+                .style("text-anchor", "middle")
+                .style("font-size", "11px")
+                .text("400m");
+
+            // Add X-axis
+            g.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x))
+                .append("text")
+                .attr("x", width / 2)
+                .attr("y", 40)
+                .attr("fill", "currentColor")
+                .style("text-anchor", "middle")
+                .style("font-size", "12px")
+                .text("Distance to Nearest Park (meters)");
+
+            // Add Y-axis
+            const yAxis = d3.axisLeft(y)
+                .ticks(8)
+                .tickFormat(d => {
+                    if (d >= 1000) {
+                        return (d / 1000).toFixed(1) + 'K';
+                    }
+                    return d;
+                });
+            
+            g.append("g")
+                .call(yAxis)
+                .selectAll("text")
+                .style("font-size", "10px");
+            
+            g.append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("y", -45)
+                .attr("x", -height / 2)
+                .attr("fill", "currentColor")
+                .style("text-anchor", "middle")
+                .style("font-size", "12px")
+                .text("Number of Residential Units");
+            
+            // Hide distance distribution chart loading indicator
+            hideLoadingInArea("distance-chart");
+        }
+
+        // Add temporary park to the map
+        function addTempParkToMap(park) {
+            if (!projection) return;
+            
+            const coords = projection([park.lon, park.lat]);
+            const radius = Math.max(5, Math.min(15, Math.sqrt(park.area / Math.PI) / 50));
+            
+            // Find the dotsG group (should be inside the map-content group)
+            let dotsG = mapSvg.select("g.map-content g.dots-g");
+            if (dotsG.empty()) {
+                const mainG = mapSvg.select("g.map-content");
+                if (!mainG.empty()) {
+                    dotsG = mainG.append("g").attr("class", "dots-g");
+                } else {
+                    // If map-content doesn't exist, create it
+                    const contentG = mapSvg.append("g").attr("class", "map-content");
+                    dotsG = contentG.append("g").attr("class", "dots-g");
+                }
+            }
+            
+            dotsG.append("circle")
+                .attr("class", "park-marker temp")
+                .attr("r", radius)
+                .attr("transform", `translate(${coords[0]},${coords[1]})`)
+                .datum(park)
+                .on("mouseover", function(event, d) {
+                    d3.select(this).attr("stroke-width", 6);
+                    showTooltip(event, {
+                        pa: "New Park",
+                        type: "temp-park",
+                        area: d.area
+                    });
+                })
+                .on("mouseout", function(event, d) {
+                    d3.select(this).attr("stroke-width", 4);
+                    hideTooltip();
+                });
+        }
+
+        // Event handling
+        document.getElementById("add-park-btn").addEventListener("click", function() {
+            isAddingPark = !isAddingPark;
+            this.classList.toggle("active");
+            if (isAddingPark) {
+                this.textContent = "Cancel";
+                mapSvg.style("cursor", "crosshair");
+            } else {
+                this.textContent = "Add New Park";
+                mapSvg.style("cursor", "default");
+            }
+        });
+
+        document.getElementById("reset-btn").addEventListener("click", function() {
+            tempParks = [];
+            mapSvg.selectAll(".temp").remove();
+            isAddingPark = false;
+            document.getElementById("add-park-btn").classList.remove("active");
+            document.getElementById("add-park-btn").textContent = "Add New Park";
+            mapSvg.style("cursor", "default");
+            debounceUpdateEvaluation(); // Use debounced update
+        });
+
+        document.getElementById("confirm-park-btn").addEventListener("click", function() {
+            const area = parseFloat(document.getElementById("park-area-input").value);
+            if (area > 0 && pendingParkLocation) {
+                const park = {
+                    lon: pendingParkLocation[0],
+                    lat: pendingParkLocation[1],
+                    area: area
+                };
+                tempParks.push(park);
+                addTempParkToMap(park);
+                debounceUpdateEvaluation(); // Use debounced update
+
+                document.getElementById("park-input-dialog").classList.remove("visible");
+                document.getElementById("park-area-input").value = "";
+                pendingParkLocation = null;
+            }
+        });
+
+        document.getElementById("cancel-park-btn").addEventListener("click", function() {
+            document.getElementById("park-input-dialog").classList.remove("visible");
+            document.getElementById("park-area-input").value = "";
+            pendingParkLocation = null;
+        });
+
+        // Window resize handling
+        let resizeTimeout;
+        window.addEventListener("resize", function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function() {
+                if (geoData && paDeficitData && projection) {
+                    const container = d3.select("#map-container");
+                    const containerNode = container.node();
+                    const width = containerNode.clientWidth;
+                    const height = containerNode.clientHeight;
+
+                    // Ensure SVG's width and height attributes match the container size
+                    mapSvg.attr("width", width)
+                           .attr("height", height)
+                           .attr("viewBox", null); // Remove viewBox, use fixed size
+
+                    // Use fitExtent (consistent with dashboard2)
+                    const margin = { top: 4, right: 4, bottom: 4, left: 4 };
+                    projection = d3.geoMercator()
+                        .fitExtent(
+                            [[margin.left, margin.top], [width - margin.right, height - margin.bottom]],
+                            geoData
+                        );
+
+                    path = d3.geoPath().projection(projection);
+
+                    // Redraw all elements (keeping control buttons)
+                    mapSvg.selectAll("*").remove();
+                    
+                    // Re-add background
+                    mapSvg.append("rect")
+                        .attr("class", "bg-rect")
+                        .attr("width", width)
+                        .attr("height", height);
+                    
+                    const g = mapSvg.append("g").attr("class", "map-content");
+                    
+                    // Create zoom behavior
+                    const zoom = d3.zoom()
+                        .scaleExtent([0.5, 8])
+                        .on("zoom", function(event) {
+                            g.attr("transform", event.transform);
+                        });
+                    
+                    mapSvg.call(zoom);
+                    
+                    // Redraw map
+                    const deficitScores = paDeficitData
+                        .map(d => d.deficitScore)
+                        .filter(v => v !== null && v !== undefined && !isNaN(v));
+                    
+                    if (deficitScores.length === 0) {
+                        console.error("No valid deficit score data");
+                        return;
+                    }
+                    
+                    const minScore = d3.min(deficitScores);
+                    const maxScore = d3.max(deficitScores);
+                    // Use a low-saturation yellow to red color scale
+                    const yellowToRed = d3.interpolateRgb("#fff9e6", "#d4a5a5"); // From low-saturation yellow to low-saturation red
+                    const colorScale = d3.scaleSequential(yellowToRed)
+                        .domain([minScore, maxScore])
+                        .clamp(true);
+                    
+                    // Draw planning areas
+                    const planningAreaG = g.append("g").attr("class", "planning-areas-g");
+                    const dotsG = g.append("g").attr("class", "dots-g");
+                    planningAreaG.selectAll("path.planning-area-path")
+                        .data(paDeficitData)
+                        .enter()
+                        .append("path")
+                        .attr("class", "planning-area-path")
+                        .attr("d", d => path(d.feature))
+                        .style("fill", d => {
+                            // Use style instead of attr to set fill, ensuring priority
+                            if (d.deficitScore === null || d.deficitScore === undefined || isNaN(d.deficitScore)) {
+                                return "#f0f0f0"; // Gray for no data
+                            }
+                            return colorScale(d.deficitScore);
+                        })
+                        .on("mouseover", function(event, d) {
+                            d3.select(this).attr("stroke-width", 3).attr("stroke", "#2a3940");
+                            showTooltip(event, d);
+                        })
+                        .on("mouseout", function(event, d) {
+                            d3.select(this).attr("stroke-width", 1.5).attr("stroke", "#e0e0e0");
+                            hideTooltip();
+                        });
+
+                    // Draw existing parks
+                    // dotsG has already been created above
+                    if (parksData && parksData.features) {
+                        dotsG.selectAll("circle.existing-park")
+                            .data(parksData.features)
+                            .enter()
+                            .append("circle")
+                            .attr("class", "park-marker existing-park")
+                            .attr("r", 5)
+                            .attr("transform", d => {
+                                const coords = projection(d.geometry.coordinates);
+                                return `translate(${coords[0]},${coords[1]})`;
+                            })
+                            .on("mouseover", function(event, d) {
+                                d3.select(this).attr("stroke-width", 4).attr("stroke", "#2a3940");
+                                showTooltip(event, {
+                                    pa: d.properties.NAME || "Park",
+                                    type: "park"
+                                });
+                            })
+                            .on("mouseout", function(event, d) {
+                                d3.select(this).attr("stroke-width", 2).attr("stroke", "#fff");
+                                hideTooltip();
+                            });
+                    }
+                    
+                    // Redraw temporary parks
+                    tempParks.forEach(park => addTempParkToMap(park));
+                    
+                    // Create gradient definition (must be created before the legend)
+                    let defs = mapSvg.select("defs");
+                    if (defs.empty()) {
+                        defs = mapSvg.append("defs");
+                    }
+                    
+                    // Remove old gradient if it exists
+                    defs.selectAll("#deficit-gradient").remove();
+                    
+                    const gradient = defs.append("linearGradient")
+                        .attr("id", "deficit-gradient")
+                        .attr("x1", "0%")
+                        .attr("x2", "100%")
+                        .attr("y1", "0%")
+                        .attr("y2", "0%");
+
+                    // Add gradient stops
+                    const numStops = 10;
+                    for (let i = 0; i <= numStops; i++) {
+                        const t = i / numStops;
+                        const score = minScore + (maxScore - minScore) * t;
+                        const color = colorScale(score);
+                        gradient.append("stop")
+                            .attr("offset", `${t * 100}%`)
+                            .attr("stop-color", color);
+                    }
+                    
+                    // Redraw legend
+                    // Use the SVG's width and height attributes to ensure correct legend positioning
+                    const svgWidth = parseFloat(mapSvg.attr("width")) || width;
+                    const svgHeight = parseFloat(mapSvg.attr("height")) || height;
+                    
+                    const legendWidth = 133; // Scaled down by 1/3 (200 * 2/3)
+                    const legendHeight = 93; // Scaled down by 1/3 (140 * 2/3)
+                    const legendX = Math.max(10, svgWidth - legendWidth - 20);
+                    const legendY = Math.max(10, svgHeight - legendHeight - 250); // Move it up by another 1/3 (150 + 50)
+
+                    // Remove old legend if it exists
+                    mapSvg.selectAll(".deficit-legend").remove();
+
+                    const legendG = mapSvg.append("g")
+                        .attr("class", "deficit-legend")
+                        .attr("transform", `translate(${legendX}, ${legendY})`)
+                        .style("pointer-events", "none"); // Prevent legend from interfering with map interaction
+
+                    // Legend background
+                    legendG.append("rect")
+                        .attr("width", legendWidth)
+                        .attr("height", legendHeight)
+                        .attr("fill", "white")
+                        .attr("fill-opacity", 0.95)
+                        .attr("stroke", "#ccc")
+                        .attr("stroke-width", 1.5)
+                        .attr("rx", 4);
+
+                    // Legend title
+                    legendG.append("text")
+                        .attr("x", legendWidth / 2)
+                        .attr("y", 10)
+                        .attr("text-anchor", "middle")
+                        .attr("font-size", "8px")
+                        .attr("font-weight", "bold")
+                        .attr("fill", "#333")
+                        .text("Deficit Score");
+
+                    // Draw gradient bar
+                    const gradientBarWidth = legendWidth - 27;
+                    const gradientBarHeight = 13;
+                    const gradientBarX = 13;
+                    const gradientBarY = 20;
+
+                    legendG.append("rect")
+                        .attr("x", gradientBarX)
+                        .attr("y", gradientBarY)
+                        .attr("width", gradientBarWidth)
+                        .attr("height", gradientBarHeight)
+                        .attr("fill", "url(#deficit-gradient)")
+                        .attr("stroke", "#999")
+                        .attr("stroke-width", 0.5);
+
+                    // Add min and max value labels
+                    legendG.append("text")
+                        .attr("x", gradientBarX)
+                        .attr("y", gradientBarY + gradientBarHeight + 10)
+                        .attr("font-size", "7px")
+                        .attr("fill", "#666")
+                        .text(minScore.toFixed(3));
+
+                    legendG.append("text")
+                        .attr("x", gradientBarX + gradientBarWidth)
+                        .attr("y", gradientBarY + gradientBarHeight + 10)
+                        .attr("text-anchor", "end")
+                        .attr("font-size", "7px")
+                        .attr("fill", "#666")
+                        .text(maxScore.toFixed(3));
+
+                    // Add calculation formula explanation
+                    legendG.append("text")
+                        .attr("x", legendWidth / 2)
+                        .attr("y", gradientBarY + gradientBarHeight + 23)
+                        .attr("text-anchor", "middle")
+                        .attr("font-size", "6px")
+                        .attr("fill", "#666")
+                        .attr("font-style", "italic")
+                        .text("Calculation:");
+
+                    legendG.append("text")
+                        .attr("x", legendWidth / 2)
+                        .attr("y", gradientBarY + gradientBarHeight + 32)
+                        .attr("text-anchor", "middle")
+                        .attr("font-size", "6px")
+                        .attr("fill", "#666")
+                        .text("(1 - NormPerCapita) +");
+
+                    legendG.append("text")
+                        .attr("x", legendWidth / 2)
+                        .attr("y", gradientBarY + gradientBarHeight + 41)
+                        .attr("text-anchor", "middle")
+                        .attr("font-size", "6px")
+                        .attr("fill", "#666")
+                        .text("NormAvgDistance");
+
+                    legendG.append("text")
+                        .attr("x", legendWidth / 2)
+                        .attr("y", gradientBarY + gradientBarHeight + 50)
+                        .attr("text-anchor", "middle")
+                        .attr("font-size", "5px")
+                        .attr("fill", "#888")
+                        .text("Higher = More Deficit");
+                }
+            }, 250);
+        });
+
+        // Initialization (fully asynchronous, non-blocking)
+        (async function() {
+            try {
+                // Don't show the full-screen loading overlay, let the page display directly
+                // showLoading(); // Commented out, no full-screen loading
+                
+                // Wait for the DOM to be fully loaded
+                if (document.readyState === 'loading') {
+                    await new Promise(resolve => {
+                        document.addEventListener('DOMContentLoaded', resolve);
+                    });
+                }
+                
+                // Use requestIdleCallback or setTimeout to delay loading, allowing the page to render first
+                await new Promise(resolve => {
+                    if (window.requestIdleCallback) {
+                        requestIdleCallback(resolve, { timeout: 100 });
+                    } else {
+                        setTimeout(resolve, 100);
+                    }
+                });
+                
+                // Load data (asynchronously in the background)
+                console.log("Loading data files...");
+                const loaded = await loadData();
+                if (!loaded) {
+                    console.error("Failed to load data files");
+                    alert("Data loading failed. Please check if the data files exist.");
+                    return;
+                }
+
+                // Calculate deficit scores (asynchronously in the background)
+                console.log("Calculating deficit scores...");
+                await calculateDeficitScores();
+                
+                console.log("Preparing to initialize map...", {
+                    geoData: !!geoData,
+                    paDeficitData: paDeficitData?.length,
+                    parksData: !!parksData
+                });
+
+                // Initialize map (use requestAnimationFrame to ensure it's non-blocking)
+                await new Promise(resolve => {
+                    requestAnimationFrame(() => {
+                        try {
+                            initMap();
+                            console.log("Map initialization complete");
+                            resolve();
+                        } catch (e) {
+                            console.error("Map initialization error:", e);
+                            alert("Map initialization failed: " + e.message);
+                            resolve();
+                        }
+                    });
+                });
+
+                // Update evaluation panel (asynchronously in the background)
+                await new Promise(resolve => {
+                    setTimeout(async () => {
+                        try {
+                            await updateEvaluation();
+                            console.log("Evaluation panel updated");
+                        } catch (e) {
+                            console.error("Evaluation update error:", e);
+                        }
+                        resolve();
+                    }, 100);
+                });
+
+                console.log("Initialization complete");
+                
+            } catch (e) {
+                console.error("Initialization error:", e);
+                alert("Initialization failed: " + e.message);
+            }
+        })();
     </script>
 </body>
 

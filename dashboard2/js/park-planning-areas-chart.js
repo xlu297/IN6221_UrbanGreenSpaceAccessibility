@@ -26,17 +26,17 @@ export function initParkPlanningAreasChart({
   const chartTitle = "Parks by Planning Area";
   const chartSubtitle = "Each dot represents a park";
 
-  const marginTop = 2;
+  const marginTop = 10;
   const marginRight = 2;
   const marginBottom = 2;
-  const nameLabelWidth = 172;
-  const countLabelWidth = 16;
-  const labelGap = 8;
+  const nameLabelWidth = 158;
+  const countLabelWidth = 15;
+  const labelGap = 6;
   const marginLeft = nameLabelWidth + countLabelWidth + labelGap * 2;
 
-  const dotRadius = 6;
-  const dotFilledRadius = 5;
-  const rowGap = 6;
+  const dotRadius = 5.2;
+  const dotFilledRadius = 4.2;
+  const rowGap = 4.5;
   const width = marginLeft + marginRight + dotsPerRow * (dotRadius * 2); // This chart has a fixed width, so no resize observer is needed
   const height =
     marginTop +
